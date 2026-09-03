@@ -1,0 +1,318 @@
+/* ===== Slay the Tower — Estilos de combate ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --fondo: #0d1117;
+  --panel: #161b22;
+  --borde: #30363d;
+  --texto: #e6edf3;
+  --dorado: #d4af37;
+}
+
+body {
+  background: radial-gradient(ellipse at top, #1a2332 0%, #0d1117 70%);
+  color: var(--texto);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+.combate {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100vh;
+}
+
+/* ---------- Campo de batalla ---------- */
+.campo {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 20px;
+  flex: 1;
+}
+
+.lado-jefe, .lado-jugador {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* ---------- Intención (encima del jefe) ---------- */
+.intencion {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  animation: aparecer 0.4s ease;
+}
+
+.intencion-icono { font-size: 22px; }
+.intencion-texto { color: var(--dorado); font-weight: 600; }
+
+/* ---------- Entidades ---------- */
+.entidad {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.entidad img, .avatar-jugador {
+  width: 160px;
+  height: 200px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 2px solid var(--borde);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+
+.avatar-jugador img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.entidad-info { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.entidad-nombre { font-size: 18px; font-weight: 700; }
+
+.barra-vida {
+  position: relative;
+  width: 220px;
+  height: 22px;
+  background: #2d1b1b;
+  border: 1px solid #4a2020;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barra-relleno {
+  height: 100%;
+  background: linear-gradient(180deg, #c44040 0%, #8b2020 100%);
+  transition: width 0.35s ease;
+}
+
+.barra-vida span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+
+.bloqueo {
+  color: #9dd0ff;
+  font-weight: 700;
+  font-size: 15px;
+  animation: aparecer 0.25s ease;
+}
+
+.estado.debuff {
+  background: #8b2020;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* ---------- Panel de estado ---------- */
+.panel-estado {
+  background: rgba(22, 27, 34, 0.9);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.energia {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+
+.energia strong {
+  color: #ffd54a;
+  font-size: 22px;
+  text-shadow: 0 0 12px rgba(255, 213, 74, 0.5);
+}
+
+.mazos { display: flex; gap: 16px; font-size: 13px; color: #9aa4b2; }
+
+.accion {
+  font-size: 13px;
+  color: #9aa4b2;
+  min-height: 18px;
+}
+
+/* ---------- Botón fin de turno ---------- */
+.btn-fin-turno {
+  background: linear-gradient(180deg, #b8860b, #8b6508);
+  color: #fff;
+  border: 2px solid #d4af37;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-fin-turno:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+}
+
+.btn-fin-turno:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- Mano de cartas ---------- */
+.mano {
+  min-height: 240px;
+  padding: 10px 0 18px;
+}
+
+.mano-aviso {
+  text-align: center;
+  color: #ff9dd0;
+  font-weight: 700;
+  margin-bottom: 8px;
+  animation: aparecer 0.3s ease;
+}
+
+.cartas {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.carta {
+  width: 128px;
+  height: 180px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 2px solid var(--borde);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s;
+  animation: aparecer 0.3s ease;
+}
+
+.carta:hover {
+  transform: translateY(-14px) scale(1.06);
+  z-index: 5;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7);
+}
+
+.carta.jugable:hover { border-color: #d4af37; }
+
+.carta.no-jugable {
+  filter: grayscale(0.7) brightness(0.6);
+  cursor: not-allowed;
+}
+
+.carta img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+}
+
+.carta-costo {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  background: radial-gradient(circle, #ffd54a 40%, #8b6508);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #2b1d00;
+  border: 1px solid #d4af37;
+  z-index: 2;
+}
+
+.carta-nombre {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 2px 0;
+}
+
+.carta-tipo {
+  text-align: center;
+  font-size: 10px;
+  color: #9aa4b2;
+  padding: 1px 0;
+}
+
+.carta-descripcion {
+  font-size: 10.5px;
+  text-align: center;
+  padding: 4px 6px;
+  line-height: 1.25;
+  color: #c9d1d9;
+}
+
+/* ---------- Overlay fin ---------- */
+.overlay-fin {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: aparecer 0.5s ease;
+}
+
+.mensaje-fin {
+  text-align: center;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--dorado);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mensaje-fin button {
+  font-size: 16px;
+  padding: 12px 28px;
+  background: linear-gradient(180deg, #b8860b, #8b6508);
+  color: #fff;
+  border: 2px solid #d4af37;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
