@@ -737,3 +737,93 @@ describe("Recompensa de victoria: elige 1 de 3", () => {
     contenedor.remove();
   });
 });
+
+describe("Arrastre estilo Spire: carta + flecha", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+    ui._forzarLimite = 500;
+    ui._rectJefe = { left: 0, top: 0, right: 200, bottom: 200 };
+  });
+
+  it("el clic ya no juega cartas (solo el arrastre)", () => {
+    const manoAntes = combat.hand.length;
+    const energiaAntes = combat.player.energy;
+    contenedor.querySelector(".carta[data-indice]").click();
+    expect(combat.hand).toHaveLength(manoAntes);
+    expect(combat.player.energy).toBe(energiaAntes);
+  });
+
+  it("el clic sigue descartando en modo Superviviente", () => {
+    combat.hand = ["strike", "defend"];
+    combat.pendingDiscard = true;
+    ui.setCombat(combat);
+    contenedor.querySelector(".carta[data-indice]").click();
+    expect(combat.hand).toHaveLength(1);
+    expect(combat.pendingDiscard).toBe(false);
+  });
+
+  it("arrastrar y soltar arriba juega la carta", () => {
+    expect(ui.iniciarArrastre(0, 100, 600)).toBe(true);
+    expect(document.getElementById("flecha-objetivo")).toBeTruthy();
+    expect(ui.soltarArrastre(100, 100)).toBe("jugada");
+    expect(combat.hand).toHaveLength(4);
+    expect(combat.player.energy).toBe(combat.player.maxEnergy - 1);
+    expect(document.getElementById("flecha-objetivo")).toBeNull();
+  });
+
+  it("soltar abajo cancela sin cambios", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    expect(ui.soltarArrastre(100, 700)).toBe("cancelada");
+    expect(combat.hand).toHaveLength(5);
+    expect(combat.player.energy).toBe(combat.player.maxEnergy);
+    expect(document.getElementById("flecha-objetivo")).toBeNull();
+  });
+
+  it("cancelarArrastre y Escape limpian la flecha", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.cancelarArrastre();
+    expect(ui.arrastre).toBeNull();
+    expect(document.getElementById("flecha-objetivo")).toBeNull();
+    ui.iniciarArrastre(0, 100, 600);
+    contenedor.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(ui.arrastre).toBeNull();
+    expect(document.getElementById("flecha-objetivo")).toBeNull();
+  });
+
+  it("efectoPrevisto aplica el Debil al dano", () => {
+    combat.player.weak = 1;
+    expect(ui.efectoPrevisto("strike").danio).toBe(4);
+    expect(ui.efectoPrevisto("defend").bloqueo).toBe(5);
+    expect(ui.efectoPrevisto("neutralize").debil).toBe(1);
+  });
+
+  it("apuntandoAlJefe detecta el objetivo", () => {
+    expect(ui.apuntandoAlJefe(50, 50)).toBe(true);
+    expect(ui.apuntandoAlJefe(500, 500)).toBe(false);
+  });
+
+  it("sobre el jefe se ilumina y muestra la vista previa", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.moverArrastre(50, 50);
+    expect(contenedor.querySelector(".lado-jefe.apuntado")).toBeTruthy();
+    const badge = document.getElementById("vista-previa");
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain("6");
+    ui.cancelarArrastre();
+  });
+});

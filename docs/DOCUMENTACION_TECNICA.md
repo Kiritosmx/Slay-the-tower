@@ -213,6 +213,9 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 02:10 | `src/combat.js`, `src/ui.js`, `src/styles.css` | `ganar()` genera 3 opciones; `elegirRecompensa(id)` valida y añade 1 a la baraja; overlay `#recompensa` estilo Spire (clic/Enter/Espacio) y mensaje de carta ganada; inválidas y duplicadas se ignoran | Elige 1 de 3 al vencer | TA | **Crítico** |
 | 2026-09-05 02:15 | `tests/checkpoints.test.js` | Nuevo bloque (5 pruebas, 59 total): pool válido, 3 opciones al vencer, elección suma 1 a la baraja, inválidas ignoradas, flujo UI completo | Fijar la recompensa | TA | Alto |
 | 2026-09-05 02:20 | `tests/`, `dist/` | **Verificación de hito**: 59/59 pruebas OK (x2) + build OK (44.74 kB JS / gzip 13.83 kB) | Confirmar recompensa sin regresiones | TA | Hito ✅ |
+| 2026-09-05 02:30 | `src/ui.js`, `src/styles.css` | Arrastre estilo Spire: las cartas SOLO se juegan arrastrando hacia arriba y soltando en zona de juego; flecha SVG curva con punta (dorada en zona, gris fuera), carta que sigue al puntero, jefe iluminado + vista previa (`−daño`/`+bloqueo`/`Débil`) al apuntarle; cancela soltar abajo, Escape y clic derecho; el clic solo sigue descartando en modo Superviviente | Interacción fiel al original | TA | **Crítico** |
+| 2026-09-05 02:35 | `tests/checkpoints.test.js` | Nuevo bloque (8 pruebas, 67 total): clic no juega, clic sí descarta, soltar arriba juega, soltar abajo cancela, Escape limpia, `efectoPrevisto` con Débil, detección del jefe, vista previa visible | Fijar el arrastre | TA | Alto |
+| 2026-09-05 02:40 | `tests/`, `dist/` | **Verificación de hito**: 67/67 pruebas OK (x2) + build OK (50.71 kB JS / gzip 15.57 kB) | Confirmar arrastre sin regresiones | TA | Hito ✅ |
 
 ---
 

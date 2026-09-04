@@ -35,6 +35,24 @@ export class UI {
     this.modalAbierto = false; // Cualquier modal abierto (baraja / robo / descarte)
     this.vistaModal = null; // null | "baraja" | "robo" | "descarte"
     this.cargador = null; // Cargador de imágenes resiliente (se inyecta)
+    // Estado del arrastre estilo Spire (arrastrar carta + flecha al objetivo)
+    this.arrastre = null;
+    this._posibleArrastre = null;
+    this._limiteJuego = null; // Sobrescribible en pruebas
+    this._rectJefe = null; // Sobrescribible en pruebas
+    this._moverRef = (e) => this._alMoverPuntero(e);
+    this._soltarRef = (e) => this._alSoltarPuntero(e);
+    // Listeners persistentes (sobreviven a los re-renders del innerHTML)
+    this.root.addEventListener("pointerdown", (e) => this._alPulsarCarta(e));
+    this.root.addEventListener("contextmenu", (e) => {
+      if (e.target.closest(".carta[data-indice]")) {
+        e.preventDefault();
+        this.cancelarArrastre();
+      }
+    });
+    this.root.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.arrastre) this.cancelarArrastre();
+    });
   }
 
   setCargador(cargador) {
@@ -158,12 +176,13 @@ export class UI {
     `;
 
     // Eventos
+    // Clic en mano: SOLO selecciona descarte en modo Superviviente.
+    // Jugar es solo por arrastre (estilo Spire); el clic ya no juega cartas.
     this.root.querySelectorAll(".carta[data-indice]").forEach((el) => {
       el.addEventListener("click", () => {
         const i = Number(el.dataset.indice);
         if (this.modalAbierto) return; // El modal bloquea jugar cartas
         if (c.pendingDiscard) c.descartarCarta(i);
-        else c.jugarCarta(i);
       });
     });
     // Recompensa de victoria: solo se puede elegir 1 de las 3
@@ -223,6 +242,213 @@ export class UI {
 
   cerrarModalBaraja() {
     this.cerrarModal();
+  }
+
+  // ---------- Arrastre estilo Spire: carta + flecha al objetivo ----------
+  // Las cartas SOLO se juegan arrastrando hacia arriba y soltando en la
+  // zona de juego. La flecha apunta al cursor; sobre el jefe se ilumina
+  // y muestra la vista previa del efecto. Soltar abajo, Escape o clic
+  // derecho cancela. Los métodos son públicos para poder probarlos.
+  _alPulsarCarta(e) {
+    if (e.button !== 0 && e.pointerType !== "touch") return;
+    const el = e.target.closest(".carta[data-indice]");
+    if (!el || this.modalAbierto || !this.combat || this.combat.pendingDiscard || this.combat.over) return;
+    this._posibleArrastre = { indice: Number(el.dataset.indice), x0: e.clientX, y0: e.clientY };
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", this._moverRef);
+      window.addEventListener("pointerup", this._soltarRef, { once: true });
+      window.addEventListener("pointercancel", this._soltarRef, { once: true });
+    }
+  }
+
+  _alMoverPuntero(e) {
+    if (this.arrastre) { this.moverArrastre(e.clientX, e.clientY); return; }
+    if (!this._posibleArrastre) return;
+    const dx = e.clientX - this._posibleArrastre.x0;
+    const dy = e.clientY - this._posibleArrastre.y0;
+    if (Math.hypot(dx, dy) > 10) {
+      const { indice, x0, y0 } = this._posibleArrastre;
+      this._posibleArrastre = null;
+      this.iniciarArrastre(indice, x0, y0);
+      this.moverArrastre(e.clientX, e.clientY);
+    }
+  }
+
+  _alSoltarPuntero(e) {
+    if (typeof window !== "undefined") window.removeEventListener("pointermove", this._moverRef);
+    this._posibleArrastre = null;
+    if (this.arrastre) {
+      if (e.type === "pointercancel") this.cancelarArrastre();
+      else this.soltarArrastre(e.clientX, e.clientY);
+    }
+  }
+
+  _quitarEscuchasVentana() {
+    if (typeof window === "undefined") return;
+    window.removeEventListener("pointermove", this._moverRef);
+    window.removeEventListener("pointerup", this._soltarRef);
+    window.removeEventListener("pointercancel", this._soltarRef);
+  }
+
+  iniciarArrastre(indice, x, y) {
+    const c = this.combat;
+    if (!c || this.modalAbierto || c.pendingDiscard || c.over) return false;
+    if (!c.hand[indice]) return false;
+    this.cancelarArrastre();
+    this._limiteJuego = this.obtenerLimiteJuego();
+    this.arrastre = { indice, x0: x, y0: y, x, y, enZona: false, sobreJefe: false };
+    const el = this.root.querySelector(`.carta[data-indice="${indice}"]`);
+    if (el) {
+      el.classList.add("arrastrando");
+      const r = el.getBoundingClientRect();
+      this.arrastre.origenX = r.left + r.width / 2;
+      this.arrastre.origenY = r.top + r.height / 2;
+    } else {
+      this.arrastre.origenX = x;
+      this.arrastre.origenY = y;
+    }
+    this._dibujarFlecha();
+    return true;
+  }
+
+  moverArrastre(x, y) {
+    if (!this.arrastre) return;
+    this.arrastre.x = x;
+    this.arrastre.y = y;
+    this.arrastre.enZona = y < this._limiteJuego;
+    this.arrastre.sobreJefe = this.apuntandoAlJefe(x, y);
+    const el = this.root.querySelector(`.carta[data-indice="${this.arrastre.indice}"]`);
+    if (el) {
+      const dx = x - this.arrastre.x0;
+      const dy = y - this.arrastre.y0;
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(1.12) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
+      el.style.zIndex = "40";
+    }
+    this._dibujarFlecha();
+    this._pintarObjetivo();
+  }
+
+  soltarArrastre(x = this.arrastre?.x, y = this.arrastre?.y) {
+    if (!this.arrastre) return "cancelada";
+    const { indice } = this.arrastre;
+    const enZona = y < this._limiteJuego;
+    this._limpiarArrastre();
+    if (enZona && this.combat) {
+      this.combat.jugarCarta(indice);
+      return "jugada";
+    }
+    return "cancelada";
+  }
+
+  cancelarArrastre() {
+    if (!this.arrastre && !this._posibleArrastre) return;
+    this._posibleArrastre = null;
+    this._limpiarArrastre();
+  }
+
+  _limpiarArrastre() {
+    this._quitarEscuchasVentana();
+    this.arrastre = null;
+    if (this._capaFlecha) { this._capaFlecha.remove(); this._capaFlecha = null; }
+    else document.getElementById("flecha-objetivo")?.remove();
+    document.getElementById("vista-previa")?.remove();
+    this.root.querySelectorAll(".carta.arrastrando").forEach((el) => {
+      el.classList.remove("arrastrando");
+      el.style.transform = "";
+      el.style.zIndex = "";
+    });
+    this.root.querySelectorAll(".lado-jefe.apuntado").forEach((el) => el.classList.remove("apuntado"));
+  }
+
+  _idUi() {
+    if (this._uid == null) this._uid = Math.floor(Math.random() * 1e9);
+    return this._uid;
+  }
+
+  obtenerLimiteJuego() {
+    if (this._forzarLimite != null) return this._forzarLimite;
+    const mano = this.root.querySelector(".mano");
+    if (mano) {
+      const r = mano.getBoundingClientRect();
+      if (r.top > 0) return r.top;
+    }
+    if (typeof window !== "undefined" && window.innerHeight) return window.innerHeight * 0.55;
+    return 300;
+  }
+
+  rectJefe() {
+    if (this._rectJefe) return this._rectJefe;
+    const el = this.root.querySelector(".lado-jefe");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return null;
+    return r;
+  }
+
+  apuntandoAlJefe(x, y) {
+    const r = this.rectJefe();
+    if (!r) return false;
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  // Vista previa del efecto sobre el objetivo (daño con Débil aplicado)
+  efectoPrevisto(cardId) {
+    const card = CARDS[cardId];
+    if (!card || !this.combat) return { danio: 0, bloqueo: 0, debil: 0 };
+    return {
+      danio: card.damage ? this.combat.calcularDañoJugador(card.damage) : 0,
+      bloqueo: card.block || 0,
+      debil: card.weak || 0,
+    };
+  }
+
+  _dibujarFlecha() {
+    if (!this.arrastre) return;
+    if (typeof document === "undefined") return;
+    if (!this._capaFlecha) {
+      this._capaFlecha = document.createElement("div");
+      this._capaFlecha.id = "flecha-objetivo";
+      document.body.appendChild(this._capaFlecha);
+    }
+    const capa = this._capaFlecha;
+    const { origenX: x1, origenY: y1, x: x2, y: y2, enZona } = this.arrastre;
+    const mx = (x1 + x2) / 2;
+    const color = enZona ? "#e8c84a" : "#8a94a0";
+    const vw = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1280;
+    const vh = typeof window !== "undefined" && window.innerHeight ? window.innerHeight : 800;
+    capa.innerHTML = `
+      <svg viewBox="0 0 ${vw} ${vh}" width="${vw}" height="${vh}">
+        <defs><marker id="punta-flecha" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="${color}"></path>
+        </marker></defs>
+        <path d="M${x1},${y1} Q${mx},${Math.min(y1, y2) - 40} ${x2},${y2}"
+          fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
+        <circle cx="${x1}" cy="${y1}" r="8" fill="${color}"/>
+      </svg>`;
+  }
+
+  _pintarObjetivo() {
+    if (typeof document === "undefined" || !this.arrastre) return;
+    const lado = this.root.querySelector(".lado-jefe");
+    const c = this.combat;
+    const card = c ? CARDS[c.hand[this.arrastre.indice]] : null;
+    document.getElementById("vista-previa")?.remove();
+    if (this.arrastre.sobreJefe && lado && card) {
+      lado.classList.add("apuntado");
+      const ef = this.efectoPrevisto(c.hand[this.arrastre.indice]);
+      const partes = [];
+      if (ef.danio > 0) partes.push(`−${ef.danio}`);
+      if (ef.bloqueo > 0) partes.push(`+${ef.bloqueo} 🛡`);
+      if (ef.debil > 0) partes.push(`Débil ${ef.debil}`);
+      if (partes.length > 0) {
+        const badge = document.createElement("div");
+        badge.id = "vista-previa";
+        badge.textContent = partes.join(" · ");
+        lado.appendChild(badge);
+      }
+    } else if (lado) {
+      lado.classList.remove("apuntado");
+    }
   }
 
   // ---------- Overlay de fin: recompensa (elige 1 de 3) o resultado ----------
