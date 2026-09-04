@@ -1,6 +1,16 @@
 // Datos de cartas basados en Slay the Spire 2 (La Silenciosa)
 const IMG = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image";
 
+// ---------- Tipos de carta (vista de baraja completa) ----------
+// Agrupación fiel al juego: Ataque ⚔, Habilidad 🛡, Poder ✦
+// (orden canónico de presentación en la vista de baraja)
+export const TIPOS = ["Ataque", "Habilidad", "Poder"];
+export const INFO_TIPOS = {
+  Ataque:    { icono: "⚔", nombre: "Ataque",    color: "#e5534b" },
+  Habilidad: { icono: "🛡", nombre: "Habilidad", color: "#6e95d7" },
+  Poder:     { icono: "✦", nombre: "Poder",     color: "#b083f0" },
+};
+
 export const CARDS = {
   strike: {
     id: "strike",

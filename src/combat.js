@@ -1,5 +1,5 @@
 // Motor de combate por turnos estilo Slay the Spire
-import { CARDS, crearBarajaInicial, BOSS, elegirIntencionJefe, INTENCIONES_JEFE } from "./gamedata.js";
+import { CARDS, crearBarajaInicial, BOSS, elegirIntencionJefe, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
 
 function barajar(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -119,6 +119,9 @@ export class Combat {
       if (this.hand.length > 0) {
         this.pendingDiscard = true;
         this.ultimaAccion = `${card.name}: elige una carta para descartar`;
+      } else {
+        // Si es la última carta de la mano no hay nada que descartar: se resuelve igual
+        this.discard.push(cardId);
       }
     } else {
       this.discard.push(cardId);
@@ -137,6 +140,42 @@ export class Combat {
     this.pendingDiscard = false;
     this.ultimaAccion = "Carta descartada";
     this.notify();
+  }
+
+  // ---------- Baraja completa ----------
+  // Colección del jugador: pila de robo + mano + descarte, ordenada por nombre
+  obtenerBarajaCompleta() {
+    return [...this.deck, ...this.hand, ...this.discard]
+      .map((id) => CARDS[id])
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }
+
+  // Baraja agrupada por tipo de carta (⚔ Ataque, 🛡 Habilidad, ✦ Poder) y
+  // ordenada por coste de energía dentro de cada grupo (empates por nombre).
+  // Las cartas con tipo desconocido van al grupo final "sin tipo".
+  obtenerBarajaPorTipos() {
+    const grupos = new Map();
+    for (const tipo of TIPOS) grupos.set(tipo, []);
+    const sinTipo = [];
+    for (const id of [...this.deck, ...this.hand, ...this.discard]) {
+      const card = CARDS[id];
+      if (!card) continue;
+      if (grupos.has(card.type)) grupos.get(card.type).push(card);
+      else sinTipo.push(card);
+    }
+    const ordenarPorCoste = (a, b) => (a.cost ?? 0) - (b.cost ?? 0) || a.name.localeCompare(b.name, "es");
+    const resultado = [];
+    for (const tipo of TIPOS) {
+      const cartas = grupos.get(tipo);
+      if (cartas.length === 0) continue;
+      cartas.sort(ordenarPorCoste);
+      resultado.push({ tipo, cartas });
+    }
+    if (sinTipo.length > 0) {
+      sinTipo.sort(ordenarPorCoste);
+      resultado.push({ tipo: null, cartas: sinTipo });
+    }
+    return resultado;
   }
 
   calcularDañoJugador(base) {

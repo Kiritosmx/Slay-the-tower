@@ -5,3 +5,6 @@ dist
 
 .vercel
 .env*
+
+# Herramientas locales (Node.js portable para el entorno sandbox)
+.tools/

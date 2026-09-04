@@ -1,0 +1,257 @@
+# Slay the Tower — Documentación Técnica del Proyecto
+
+> Versión del documento: 1.0 — 2026-09-04
+> Estado: **Operativo** (48/48 pruebas superadas · build de producción verificado)
+> Responsable de mantenimiento: Equipo de desarrollo (agente Trae + Kike)
+
+---
+
+## 1. Objetivos del proyecto
+
+### 1.1 Objetivo estratégico
+Construir un juego de cartas roguelike por turnos inspirado en *Slay the Spire* — *"La Silenciosa" vs. el Centinela de la Torre"* — desplegable en web (Vercel) con calidad de producción y capacidad de evolucionar hacia un modo campaña completo (múltiples pisos, reliquias, pociones y más jefes).
+
+### 1.2 Objetivos operativos
+| # | Objetivo | Estado |
+|---|----------|--------|
+| O1 | Motor de combate por turnos funcional (energía, bloqueo, debuffs, baraja/robo/descarte) | ✅ Operativo |
+| O2 | Interfaz completa: campo, intención del jefe, mano, panel de estado, modal de baraja | ✅ Operativo |
+| O3 | **Checkpoints funcionales** en hitos clave con verificación de funcionalidad, rendimiento y estabilidad | ✅ Implementado (7 checkpoints, 31 pruebas) |
+| O4 | **Resiliencia ante incidentes del proveedor** (503 / `cache_only_cold`): reintentos, caché, cortacircuitos, monitoreo | ✅ Implementado |
+| O5 | Documentación estructurada y registro cronológico de cambios actualizado en tiempo real | ✅ Este documento |
+| O6 | Despliegue continuo en Vercel (`framework: vite`) | ✅ Configurado |
+
+### 1.3 Criterios de éxito medibles
+- Cobertura de verificación: **48/48 pruebas** en `npm test`.
+- Rendimiento del motor: **≤ 50 ms/turno** (medido: ~0.05 ms/turno).
+- Rendimiento de la UI: **≤ 100 ms/render** (medido: ~7-46 ms).
+- Degradación ante caída del proveedor de imágenes: **100 % jugable** (fallback local garantizado).
+
+---
+
+## 2. Arquitectura del sistema
+
+```
+Slay the tower/
+├── index.html                 Punto de entrada HTML (monta #app)
+├── package.json               Scripts: dev | build | test | checkpoint
+├── vitest.config.js           Configuración de pruebas (jsdom)
+├── vercel.json                Despliegue (vite → dist)
+├── src/
+│   ├── main.js                Bootstrap: UI + combate + cargador resiliente + checkpoints
+│   ├── gamedata.js            Datos: cartas, baraja inicial, jefe, intenciones
+│   ├── combat.js              Motor de combate (reglas y flujo de turnos)
+│   ├── ui.js                  Renderizado DOM del combate (integrado con resiliencia)
+│   ├── resilient.js           ⭐ Módulo de resiliencia (reintentos, caché, cortacircuitos, monitor, fallback)
+│   ├── checkpoints.js         ⭐ Sistema de checkpoints funcionales (7 hitos)
+│   └── styles.css             Estilos del campo de batalla
+└── tests/
+    └── checkpoints.test.js    Suite automatizada (31 pruebas, 1 archivo)
+```
+
+Flujo de arranque (`main.js`):
+1. Se instancia `UI` y `Combat`; el combate arranca el turno 1.
+2. Se crea el `CargadorImagenesResiliente` y se inyecta en la UI.
+3. Se precargan los 5 recursos de imagen **con concurrencia limitada** (≤ 3 simultáneas).
+4. Al resolverse (remoto/caché/fallback), se re-renderiza la UI.
+5. Se ejecutan los checkpoints base + resiliencia al inicio; quedan expuestos en `window.__CHECKPOINTS__` para re-verificación manual.
+
+---
+
+## 3. Sistema de checkpoints funcionales
+
+Cada checkpoint es un **hito clave** con verificaciones objetivas de **funcionalidad, rendimiento y estabilidad**. Se ejecutan automáticamente al arrancar la app, en cada `npm test` y pueden invocarse manualmente desde la consola del navegador.
+
+### 3.1 Registro de checkpoints
+| ID | Hito | Tipo | Verifica | Pruebas |
+|----|------|------|----------|---------|
+| `cp01-datos-juego` | Datos del juego íntegros | Funcionalidad | 4 cartas con imagen, baraja de 12, jefe, 5 intenciones, no-repetición de intención | 4 |
+| `cp02-motor-combate` | Motor operativo | Funcionalidad | Turno/energía/mano, reciclaje de descarte, límite de mano, costes, bloqueo | 6 |
+| `cp03-fin-partida` | Fin de partida correcto | Estabilidad | Victoria (jefe 0 PS), derrota (jugador 0 PS), bloqueo post-fin | 2 |
+| `cp04-rendimiento` | Rendimiento del motor | Rendimiento | 20 turnos simulados; ≤ 50 ms/turno | 1 |
+| `cp05-ui` | UI renderiza el combate | Funcionalidad + Rendimiento | HTML completo, botones, 5 cartas; render ≤ 100 ms | 2 |
+| `cp06-resiliencia-503` | Resiliencia ante 503/`cache_only_cold` | Estabilidad | Clasificación de errores, backoff, reintentos, cortacircuitos, caché TTL, fallback, monitoreo | 10 |
+| `cp07-recursos-imagenes` | Recursos resueltos | Estabilidad | 5 recursos críticos resueltos (remoto/caché/fallback), jugabilidad garantizada | 2 |
+| `cp08-vista-baraja` | Vista de baraja completa por palos | Funcionalidad + Rendimiento | Botón presente, modal con 12 cartas, 4 grupos ♥♦♣♠, orden por valor, cierres (X/Volver/Escape/fondo), modal con 100+ cartas ≤ 100 ms | 17 |
+| — | Integración del sistema | — | 8 checkpoints definidos, suite base sin alertas, error controlado | 3 |
+
+### 3.2 Estados y salida
+- **verificado** — todas las comprobaciones OK (consola: `[CHECKPOINT OK]`).
+- **alerta** — al menos una comprobación fallida (consola: `[CHECKPOINT ALERTA]` + detalle).
+- Informe agregado: `__CHECKPOINTS__.informe()` → `{ total, verificados, alertas, estadoGlobal }`.
+
+### 3.3 Comandos
+```bash
+npm test        # Suite completa (vitest, jsdom): 48 pruebas
+npm run checkpoint   # Pruebas + build de producción (verificación de hito)
+```
+```js
+// En consola del navegador:
+__CHECKPOINTS__.verificarTodos()   // re-ejecuta los 7 checkpoints
+__CHECKPOINTS__.verificar("cp06-resiliencia-503")
+__CHECKPOINTS__.informe()
+__CARGADOR_RECURSOS__.monitor.resumen()   // salud del monitoreo
+```
+
+### 3.4 Cuándo ejecutar los checkpoints
+- **Al arrancar** la aplicación (automático).
+- **Tras cada cambio** en `gamedata.js`, `combat.js`, `ui.js`, `resilient.js` o `checkpoints.js` → `npm test`.
+- **Antes de desplegar** a Vercel → `npm run checkpoint` (pruebas + build).
+- **En incidente de producción** → verificar manualmente `cp06` y `cp07` desde la consola del navegador.
+
+---
+
+## 4. Incidente de referencia: error `cache_only_cold` (HTTP 503 / código 4028)
+
+### 4.1 Descripción del error
+```
+cache-only admission rejected a cold, unavailable, or overloaded request
+(Model Provider Error Code: cache_only_cold, HTTP Status: 503) (4028)
+```
+
+### 4.2 Análisis de causas raíz
+| # | Causa raíz | Explicación |
+|---|-----------|-------------|
+| C1 | **Caché fría (cold cache)** | El proveedor opera en modo *cache-only*: si el recurso solicitado no está en su caché (fría tras un reinicio, despliegue o expiración), rechaza la petición en lugar de generarla. |
+| C2 | **Sobrecarga del proveedor** | El 503 indica capacidad saturada: demasiadas peticiones simultáneas de clientes (posible *thundering herd* de reintentos no coordinados). |
+| C3 | **Indisponibilidad temporal** | Ventanas de mantenimiento, reinicios o fallos de nodos del proveedor. |
+| C4 | **Falta de capa de resiliencia en el cliente** | El proyecto original solicitaba las imágenes del proveedor directamente desde el `<img>` sin reintentos, caché local ni alternativa: **cualquier 503 = imagen rota en el juego**. |
+
+### 4.3 Medidas preventivas y de resolución implementadas
+Todas están implementadas en [src/resilient.js](../src/resilient.js) e integradas en el ciclo de vida de la app:
+
+| Medida | Implementación | Mitiga |
+|--------|----------------|--------|
+| **Reintentos inteligentes** | `conReintentos()`: hasta 4 intentos con **backoff exponencial (800 ms → 8 s) + jitter ±30 %**. Solo reintenta errores clasificados como reintentables (503/429/408/`cache_only_cold`); los 4xx/500 no se reintentan para no añadir carga inútil. | C1, C3 |
+| **Gestión de carga** | `precargar()` con **concurrencia limitada a 3 peticiones simultáneas** (semáforo de trabajadoras). | C2 |
+| **Caché complementaria** | `CacheComplementario`: memoria + `sessionStorage` con **TTL de 24 h**. Un recurso servido una vez no se vuelve a pedir al proveedor (también entre sesiones del mismo navegador). | C1, C2, C3 |
+| **Cortacircuitos** | `Cortacircuitos`: 3 fallos consecutivos → **abierto** (bloquea peticiones 30 s, degradación inmediata a fallback sin reintentos inútiles) → **semiabierto** (1 petición de prueba) → **cerrado** con éxito. Evita tormentas de reintentos contra un proveedor caído. | C2, C3 |
+| **Fallback local garantizado** | `generarFallbackSVG()`: si tras agotar reintentos el recurso no llega, se genera una **imagen SVG embebida local (data URI)** con el nombre del recurso → **el juego es 100 % jugable sin proveedor**. | C1, C2, C3, C4 |
+| **Monitoreo continuo** | `MonitorEventos`: registra cada intento/reintento/fallback con marca temporal, nivel (info/aviso/error) y contexto; expone `resumen()` con salud del sistema (`ok`/`degradado`/`critico`) y permite suscripciones en tiempo real. | Detección y trazabilidad |
+
+### 4.4 Clasificación de errores (política)
+| Error | ¿Reintenta? | Motivo |
+|-------|-------------|--------|
+| 503 / `cache_only_cold` | ✅ Sí (hasta 3 reintentos con backoff) | Transitorio: caché fría o sobrecarga |
+| 429 (rate limit) | ✅ Sí | Transitorio con espera |
+| 408 (timeout) | ✅ Sí | Transitorio |
+| 500 (error interno) | ❌ No | No transitorio: reintento = carga inútil |
+
+### 4.5 Verificación automatizada del incidente
+El checkpoint `cp06-resiliencia-503` (10 pruebas) reproduce el error exacto del incidente y verifica **cada** medida:
+- El mensaje literal del incidente se clasifica como reintentable.
+- Un servicio simulado que falla 2 veces con 503 se recupera en el 3.er intento.
+- El cortacircuitos abre tras 3 fallos y se recupera gradualmente.
+- La caché sirve repeticiones y expira por TTL.
+- El fallback SVG se genera sin red.
+- El monitoreo calcula la salud correcta (`degradado` con 1 error).
+
+### 4.6 Protocolo de actuación ante recurrencia
+1. **Automático**: reintentos → caché → cortacircuitos → fallback SVG. El juego **nunca se rompe**.
+2. **Detección**: consola del navegador → `__CARGADOR_RECURSOS__.monitor.resumen()`.
+3. **Diagnóstico**: `__CHECKPOINTS__.verificar("cp06-resiliencia-503")` y `verificar("cp07-recursos-imagenes")`.
+4. **Si el proveedor persiste caído**: el cortacircuitos mantiene degradación elegante; revisar estado del proveedor externo antes de actuar.
+5. **Post-incidente**: documentar en el registro cronológico (sección 6) con causa, detección y resolución.
+
+### 4.7 Medidas operativas (entorno de desarrollo)
+Las mismas políticas se aplican a las herramientas de desarrollo:
+- `npm install` ejecutado con `--fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000` (reintentos ante fallos de red del registro npm).
+- Node.js portable (v22.14.0) instalado en `.tools/node` para independencia del PATH del sistema.
+- Las instalaciones se verifican comprobando `node_modules` y `package.json` tras cada paso (patrón checkpoint aplicado al propio despliegue de herramientas).
+
+---
+
+## 5. Registro cronológico de cambios
+
+> Convención: cada entrada registra fecha, archivo(s), propósito, responsable e impacto.
+> Responsables: **TA** = agente Trae (automatizado), **KIKE** = propietario del proyecto.
+
+| Fecha | Archivo(s) | Cambio | Propósito | Responsable | Impacto |
+|-------|-----------|--------|-----------|-------------|---------|
+| 2026-09-03 | `package-lock.json` | Cierre inicial de dependencias (vite 7.x) | Base de build | KIKE | Bajo |
+| 2026-09-04 12:20 | `node_modules/` | Instalación de dependencias base (`npm install` con política de reintentos npm: `--fetch-retries=5`) | Preparar entorno de build | TA | Medio |
+| 2026-09-04 13:05 | `.tools/node/` | Instalación de Node.js v22.14.0 portable (desde nodejs.org) dentro del proyecto | `node`/`npm` no disponibles en PATH del sandbox; garantiza builds y pruebas reproducibles | TA | Alto |
+| 2026-09-04 13:10 | `package.json` | Nuevas devDependencies: `vitest@^5.0.0`, `jsdom@^29.1.1` | Infraestructura de pruebas para checkpoints | TA | Alto |
+| 2026-09-04 13:12 | `package.json` | Scripts nuevos: `test`, `test:watch`, `checkpoint` (`vitest run && vite build`) | Automatizar verificación de hitos | TA | Medio |
+| 2026-09-04 13:15 | `src/resilient.js` **(nuevo)** | Módulo de resiliencia: `conReintentos` (backoff+jitter), `Cortacircuitos`, `CacheComplementario` (TTL), `MonitorEventos`, `generarFallbackSVG`, `CargadorImagenesResiliente` (concurrencia limitada) | Mitigar el incidente `cache_only_cold`/503 y garantizar jugabilidad sin proveedor | TA | **Crítico** |
+| 2026-09-04 13:20 | `src/checkpoints.js` **(nuevo)** | Sistema de checkpoints: clase `SistemaCheckpoints` + 7 checkpoints (CP-01…CP-07) con verificaciones de funcionalidad/rendimiento/estabilidad; expuesto en `window.__CHECKPOINTS__` | Verificación continua en hitos clave | TA | **Crítico** |
+| 2026-09-04 13:22 | `src/ui.js` | Integración de resiliencia: `setCargador()`, helper `imagenResiliente()`; las 3 `<img>` (jefe, mano, modal) usan URL resuelta (remota o fallback) | Que la UI refleje degradación elegante | TA | Alto |
+| 2026-09-04 13:25 | `src/main.js` | Bootstrap ampliado: cargador resiliente global (`__CARGADOR_RECURSOS__`), precarga con concurrencia ≤3, re-render al resolver, ejecución automática de checkpoints al inicio | Conectar resiliencia y checkpoints con el ciclo de vida de la app | TA | Alto |
+| 2026-09-04 13:30 | `vitest.config.js` **(nuevo)** | Configuración de pruebas (jsdom, globals) | Ejecutar la suite de checkpoints | TA | Medio |
+| 2026-09-04 13:32 | `tests/checkpoints.test.js` **(nuevo)** | Suite de 31 pruebas automatizadas (CP-01…CP-07 + integración del sistema) | Verificación reproducible de todos los hitos | TA | **Crítico** |
+| 2026-09-04 13:40 | `src/checkpoints.js` | Corrección CP-02: combate fresco para las pruebas de reglas de cartas (evitaba contaminación de estado entre comprobaciones) | Exactitud del checkpoint | TA | Corrección |
+| 2026-09-04 13:45 | `src/checkpoints.js` | Corrección CP-05: eliminado `push` anidado erróneo; aislamiento de DOM ante ids duplicados (jsdom) y selector por clase `.btn-fin-turno` | Exactitud del checkpoint | TA | Corrección |
+| 2026-09-04 13:58 | `src/checkpoints.js` | Imports dinámicos → estáticos (ui.js, resilient.js) | Build sin advertencias de chunking | TA | Bajo |
+| 2026-09-04 13:59 | `tests/`, `dist/` | **Verificación de hito**: 31/31 pruebas OK + build de producción OK (31.54 kB JS / gzip 10.65 kB) | Confirmar estado operativo | TA | Hito ✅ |
+| 2026-09-04 14:05 | `docs/DOCUMENTACION_TECNICA.md` **(nuevo)** | Documentación técnica completa (este documento) | Trazabilidad y transferencia de conocimiento | TA | Alto |
+| 2026-09-04 16:40 | `src/gamedata.js` | Nuevos datos de palos y valores: `PALOS` (♥♦♣♠ orden canónico), `INFO_PALOS` (icono/nombre/color por palo), `VALORES` (2→A), `etiquetaValor()`; cada carta recibe `palo` y `valor` (Golpe=♠7, Defensa=♥7, Neutralizar=♣A, Superviviente=♦Q) | Habilitar la vista de baraja agrupada por palo y ordenada por valor | TA | Alto |
+| 2026-09-04 16:45 | `src/combat.js` | Nuevo método `obtenerBarajaPorPalos()`: agrupa pila+mano+descarte por palo (orden canónico) y ordena cada grupo por valor (2→A); cartas sin palo van a grupo final "sin palo" | Lógica de ordenamiento solicitada para la vista de baraja | TA | Alto |
+| 2026-09-04 16:50 | `src/ui.js` | Modal de baraja rediseñado: render por grupos con título/contador/color de palo, etiqueta de valor (7/J/Q/K/A) en cada carta, animación escalonada (`--retardo` por grupo y carta con techo), foco automático al abrir y devolución de foco al botón al cerrar, `aria-label` descriptivo | Experiencia de usuario completa, accesible y fluida | TA | Alto |
+| 2026-09-04 16:52 | `src/styles.css` | +210 líneas: estilo del botón `.btn-baraja` (paleta azul acorde al proyecto), modal (`backdrop-filter`, grid fluido `auto-fill minmax`), colores por palo, animaciones `modalEntrar`/`cartaAparecer`, responsive en 3 breakpoints (900px tablets / 600px móviles / escritorio), `prefers-reduced-motion` | Integración armónica + responsive total | TA | Alto |
+| 2026-09-04 16:55 | `src/checkpoints.js` | Nuevo checkpoint `cp08-vista-baraja` (11 comprobaciones): botón, apertura, 12 cartas, 4 palos en orden, orden por valor, títulos, cierres, rendimiento con 100+ cartas; aislamiento de ids residuales | Verificación del nuevo hito clave | TA | Alto |
+| 2026-09-04 16:57 | `tests/checkpoints.test.js` | +18 pruebas (48 total): botón abre/deshabilita, carga 12 cartas, agrupación ♥♦♣♠, orden por valor, etiquetas de valor, 4 cierres (X/Volver/Escape/fondo), bloqueo de juego con modal abierto, animación escalonada, rendimiento baraja máxima, carga diferida `loading=lazy`+`decoding=async`, compatibilidad cross-browser (ARIA/APIs) | Verificar botón, carga completa y compatibilidad | TA | **Crítico** |
+| 2026-09-04 16:58 | `tests/`, `dist/` | **Verificación de hito**: 48/48 pruebas OK + build OK (35.50 kB JS / gzip 11.87 kB) | Confirmar integración sin conflictos | TA | Hito ✅ |
+
+---
+
+## 6. Guías de operación
+
+### 6.1 Desarrollo local
+```powershell
+# Node portable (si node/npm no están en PATH):
+$node  = "C:\Users\Kike\Desktop\Proyectos\.tools\node\node-v22.14.0-win-x64\node.exe"
+$npm   = "C:\Users\Kike\Desktop\Proyectos\.tools\node\node-v22.14.0-win-x64\node_modules\npm\bin\npm-cli.js"
+& $node $npm run dev          # servidor de desarrollo Vite
+```
+
+### 6.2 Verificación de hito (checkpoint completo)
+```powershell
+& $node $npm run checkpoint   # = vitest run + vite build
+```
+
+### 6.3 Despliegue
+- Vercel está configurado (`vercel.json`: framework vite, build `npm run build`, output `dist`).
+- **Requisito previo de despliegue**: `npm run checkpoint` en verde.
+- El proyecto Vercel vinculado es `trae_y1nm6h6k` (`.vercel/project.json`).
+
+### 6.4 Reglas de trabajo a partir de ahora (acordadas)
+1. **Cada cambio de código → `npm test`** antes de considerarse terminado.
+2. **Cada hito → `npm run checkpoint`** (pruebas + build) y anotación en el registro cronológico (sección 5).
+3. **Toda edición relevante se documenta** en la sección 5 con: fecha, archivos, propósito, responsable, impacto.
+4. **El incidente `cache_only_cold` se considera mitigado por diseño**: cualquier nuevo recurso externo (API, imagen, servicio) debe integrarse a través de `resilient.js` (reintentos + caché + cortacircuitos + fallback), nunca con llamadas directas.
+5. Nuevos checkpoints se añaden en `src/checkpoints.js` con: id `cpNN-<tema>`, hito, tipo y comprobaciones; y su prueba correspondiente en `tests/checkpoints.test.js`.
+
+---
+
+## 7. Referencias rápidas de API interna
+
+### resilient.js
+| Export | Descripción |
+|--------|-------------|
+| `conReintentos(fn, {intentos, esReintentable, alReintentar, retraso})` | Ejecuta `fn` con política de reintentos |
+| `esErrorReintentable(err)` | Clasifica 503/429/408/`cache_only_cold` como reintentables |
+| `calcularRetraso(intento)` | Backoff exponencial + jitter (800 ms → 8 s) |
+| `Cortacircuitos` | Estados cerrado/abierto/semiabierto (umbral 3, enfriamiento 30 s) |
+| `CacheComplementario` | Caché memoria+sessionStorage con TTL (24 h por defecto) |
+| `MonitorEventos` | Log de eventos con suscriptores y `resumen()` de salud |
+| `generarFallbackSVG(texto)` | Imagen SVG embebida (data URI) sin red |
+| `CargadorImagenesResiliente` | Orquestador: caché → cortacircuitos → reintentos → fallback; `urlFinal()`, `resolver()`, `precargar()` |
+
+### checkpoints.js
+| Export | Descripción |
+|--------|-------------|
+| `SistemaCheckpoints` | `verificar(id)`, `verificarBase()`, `verificarTodos()`, `informe()` |
+| `CHECKPOINTS` | Definición de los 8 checkpoints (extensible) |
+
+### gamedata.js (vista de baraja)
+| Export | Descripción |
+|--------|-------------|
+| `PALOS` | Orden canónico de palos: `["corazones", "diamantes", "treboles", "picas"]` (♥ ♦ ♣ ♠) |
+| `INFO_PALOS` | Por palo: icono, nombre en español y color de acento |
+| `VALORES` | Etiquetas 2-10, J, Q, K, A |
+| `etiquetaValor(valor)` | Convierte valor numérico (2-14) en etiqueta (7, J, Q, K, A) |
+| `CARDS[x].palo / .valor` | Cada carta lleva palo y valor para la agrupación/orden |
+
+---
+
+*Fin del documento. Actualizar la sección 5 con cada cambio; este documento es la fuente única de verdad del proyecto.*
