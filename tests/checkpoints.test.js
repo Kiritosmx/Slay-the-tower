@@ -50,7 +50,7 @@ describe("CP-01: Datos del juego íntegros", () => {
   it("define jefe con nombre, vida e imagen", () => {
     expect(BOSS.name).toBeTruthy();
     expect(BOSS.maxHp).toBeGreaterThan(0);
-    expect(BOSS.image).toMatch(/^https?:\/\//);
+    expect(BOSS.image).toMatch(/^(\/|https?:\/\/)/);
   });
 
   it("el selector de intención nunca repite la inmediata anterior", () => {
@@ -572,5 +572,76 @@ describe("CP-08: Vista de baraja completa", () => {
     const registro = await sistema.verificar("cp08-vista-baraja");
     expect(registro.estado).toBe("verificado");
     expect(registro.comprobaciones.length).toBeGreaterThanOrEqual(10);
+  });
+});
+
+// ---------- Estética Spire: escena, barras con bloqueo y pilas ----------
+describe("Estética Spire: escena y pilas", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+  });
+
+  it("coloca al jugador a la izquierda y al jefe a la derecha", () => {
+    const escena = contenedor.querySelector(".campo-escena");
+    expect(escena).toBeTruthy();
+    const lados = [...escena.children].map((el) => el.className);
+    expect(lados[0]).toMatch(/lado-jugador/);
+    expect(lados[1]).toMatch(/lado-jefe/);
+    expect(contenedor.querySelector(".sprite-jugador").getAttribute("src")).toContain("silent_sin_fondo");
+    expect(contenedor.querySelector(".sprite-jefe").getAttribute("alt")).toContain("Centinela");
+  });
+
+  it("muestra orbe de energía y pilas de robo/descarte con contadores", () => {
+    expect(contenedor.querySelector(".orbe-energia").textContent).toContain(`${combat.player.energy}/${combat.player.maxEnergy}`);
+    expect(contenedor.querySelector("#btn-robo .pila-contador").textContent).toBe(String(combat.deck.length));
+    expect(contenedor.querySelector("#btn-descarte .pila-contador").textContent).toBe(String(combat.discard.length));
+  });
+
+  it("la barra se vuelve azul cuando hay bloqueo", () => {
+    combat.player.block = 8;
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".lado-jugador .barra-vida.con-bloqueo")).toBeTruthy();
+    expect(contenedor.querySelector(".lado-jugador .escudo-bloqueo").textContent).toContain("8");
+    combat.player.block = 0;
+    combat.boss.block = 5;
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".lado-jefe .barra-vida.con-bloqueo")).toBeTruthy();
+  });
+
+  it("el modal de robo lista las cartas por robar y se cierra", () => {
+    ui.abrirModalRobo();
+    expect(contenedor.querySelector("#modal-robo")).toBeTruthy();
+    expect(contenedor.querySelectorAll("#modal-robo .carta-vista").length).toBe(combat.deck.length);
+    ui.cerrarModal();
+    expect(contenedor.querySelector("#modal-robo")).toBeNull();
+  });
+
+  it("el modal de descarte lista los descartes y se cierra con Escape", () => {
+    combat.discard.push("strike", "defend");
+    ui.setCombat(combat);
+    ui.abrirModalDescarte();
+    expect(contenedor.querySelector("#modal-descarte")).toBeTruthy();
+    expect(contenedor.querySelectorAll("#modal-descarte .carta-vista").length).toBe(combat.discard.length);
+    contenedor.querySelector("#modal-descarte").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(ui.modalAbierto).toBe(false);
+  });
+
+  it("el motor expone la pila de robo y descarte como cartas", () => {
+    expect(combat.obtenerPilaRobo().length).toBe(combat.deck.length);
+    expect(combat.obtenerPilaDescarte().length).toBe(combat.discard.length);
+    expect(combat.obtenerPilaRobo().every((c) => c.name)).toBe(true);
   });
 });

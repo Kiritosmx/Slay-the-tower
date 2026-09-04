@@ -1,5 +1,8 @@
-// Interfaz de combate: renderizado DOM del estado
-import { CARDS, BOSS, INTENCIONES_JEFE, INFO_TIPOS } from "./gamedata.js";
+// Interfaz de combate estilo Slay the Spire sobre fondo de cueva (solo CSS).
+// Layout según entorno1: jugador a la izquierda, jefe a la derecha,
+// barras de vida bajo cada sprite, intención sobre el jefe y barra
+// inferior con orbe de energía + pila de robo + mano + fin de turno + descarte.
+import { CARDS, BOSS, PLAYER, INFO_TIPOS } from "./gamedata.js";
 
 // Resolución resiliente de imágenes: si el proveedor cae (503/cache_only_cold)
 // se usa el fallback local en lugar de la URL remota. Resolución perezosa:
@@ -9,12 +12,28 @@ function imagenResiliente(cargador, url) {
   return cargador ? cargador.urlFinal(url) : url;
 }
 
+function barraVida(entidad, esJefe) {
+  const pct = Math.max(0, (entidad.hp / entidad.maxHp) * 100);
+  const conBloqueo = entidad.block > 0;
+  return `
+    <div class="barra-vida-wrap">
+      ${conBloqueo ? `<div class="escudo-bloqueo" title="Bloqueo">🛡 ${entidad.block}</div>` : ""}
+      <div class="barra-vida ${conBloqueo ? "con-bloqueo" : ""}" role="progressbar"
+        aria-valuenow="${entidad.hp}" aria-valuemin="0" aria-valuemax="${entidad.maxHp}"
+        aria-label="Vida ${esJefe ? "del jefe" : "del jugador"}">
+        <div class="barra-relleno" style="width: ${pct}%"></div>
+        <span>${entidad.hp} / ${entidad.maxHp}</span>
+      </div>
+    </div>`;
+}
+
 export class UI {
   constructor(root) {
     this.root = root;
     this.combat = null;
     this.lastLogs = [];
-    this.modalAbierto = false; // Vista de baraja completa abierta
+    this.modalAbierto = false; // Cualquier modal abierto (baraja / robo / descarte)
+    this.vistaModal = null; // null | "baraja" | "robo" | "descarte"
     this.cargador = null; // Cargador de imágenes resiliente (se inyecta)
   }
 
@@ -33,85 +52,109 @@ export class UI {
 
     this.root.innerHTML = `
       <div class="combate" data-fase="${c.over ? "fin" : "jugando"}">
-        <!-- Campo: jefe -->
-        <section class="campo">
+        <!-- Barra superior: nombre, piso/turno, acción y baraja completa -->
+        <header class="barra-superior">
+          <div class="jugador-ficha">
+            <span class="ficha-nombre">${c.player.name}</span>
+            <span class="ficha-hp">❤ ${c.player.hp}/${c.player.maxHp}</span>
+          </div>
+          <div class="piso-turno">
+            <span class="piso">Piso 1</span>
+            <span class="turno">Turno ${c.turn}</span>
+          </div>
+          <div class="botones-accion">
+            <span class="accion">${c.ultimaAccion || ""}</span>
+            <button class="btn-baraja" id="btn-baraja" ${c.busy ? "disabled" : ""} title="Ver todas mis cartas">
+              📖 Ver todas mis cartas
+            </button>
+          </div>
+        </header>
+
+        <!-- Escena: jugador izquierda, jefe derecha (como en entorno1) -->
+        <section class="campo campo-escena">
+          <div class="lado-jugador">
+            <div class="entidad jugador" data-entidad="jugador">
+              <img class="sprite sprite-jugador" src="${PLAYER.image}" alt="${c.player.name}" />
+              <div class="entidad-info">
+                <div class="entidad-nombre">${c.player.name}
+                  ${c.player.weak > 0 ? `<span class="estado debuff" title="Débil: tus ataques infligen 25% menos">Débil ${c.player.weak}</span>` : ""}
+                </div>
+                ${barraVida(c.player, false)}
+              </div>
+            </div>
+          </div>
+
           <div class="lado-jefe">
             <div class="intencion" title="${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}">
               <span class="intencion-icono">${c.boss.intent ? c.boss.intent.icon : "?"}</span>
               <span class="intencion-texto">${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}</span>
             </div>
-            <div class="entidad" data-entidad="jefe">
-              <img src="${imagenResiliente(this.cargador, BOSS.image)}" alt="${BOSS.name}" />
+            <div class="entidad jefe" data-entidad="jefe">
+              <img class="sprite sprite-jefe" src="${imagenResiliente(this.cargador, BOSS.image)}" alt="${BOSS.name}" />
               <div class="entidad-info">
                 <div class="entidad-nombre">${BOSS.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}</div>
-                <div class="barra-vida">
-                  <div class="barra-relleno" style="width: ${(c.boss.hp / c.boss.maxHp) * 100}%"></div>
-                  <span>${c.boss.hp} / ${c.boss.maxHp}</span>
-                </div>
-                ${c.boss.block > 0 ? `<div class="bloqueo">🛡 ${c.boss.block}</div>` : ""}
-              </div>
-            </div>
-          </div>
-
-          <!-- Jugador -->
-          <div class="lado-jugador">
-            <div class="entidad jugador" data-entidad="jugador">
-              <div class="avatar-jugador"><img src="/silent.png" alt="${c.player.name}" /></div>
-              <div class="entidad-info">
-                <div class="entidad-nombre">${c.player.name}
-                  ${c.player.weak > 0 ? `<span class="estado debuff" title="Débil: tus ataques infligen 25% menos">Débil ${c.player.weak}</span>` : ""}
-                </div>
-                <div class="barra-vida">
-                  <div class="barra-relleno" style="width: ${(c.player.hp / c.player.maxHp) * 100}%"></div>
-                  <span>${c.player.hp} / ${c.player.maxHp}</span>
-                </div>
-                ${c.player.block > 0 ? `<div class="bloqueo">🛡 ${c.player.block}</div>` : ""}
-              </div>
-            </div>
-            <div class="panel-estado">
-              <div class="energia"><span>Energía</span><strong>${c.player.energy}/${c.player.maxEnergy}</strong></div>
-              <div class="mazos">
-                <span>Pila de robo: <b>${c.deck.length}</b></span>
-                <span>Descarte: <b>${c.discard.length}</b></span>
-              </div>
-              <div class="accion">${c.ultimaAccion || ""}</div>
-              <div class="botones-accion">
-                <button class="btn-fin-turno" id="btn-fin-turno" ${c.busy || c.over || c.pendingDiscard ? "disabled" : ""}>
-                  Finalizar turno
-                </button>
-                <button class="btn-baraja" id="btn-baraja" ${c.busy ? "disabled" : ""} title="Ver todas mis cartas">
-                  📖 Ver todas mis cartas
-                </button>
+                ${barraVida(c.boss, true)}
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Mano -->
-        <section class="mano" data-modo="${c.pendingDiscard ? "descarte" : "normal"}">
-          ${c.pendingDiscard ? `<div class="mano-aviso">Selecciona una carta para descartar</div>` : ""}
-          <div class="cartas">
-            ${c.hand
-              .map((cardId, i) => {
-                const card = CARDS[cardId];
-                const jugable = c.puedeJugar(cardId);
-                return `
-                <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}">
-                  <div class="carta-costo">${card.cost}</div>
-                  <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" />
-                  <div class="carta-nombre">${card.name}</div>
-                  <div class="carta-tipo">${card.type}</div>
-                  <div class="carta-descripcion">${card.description}</div>
-                </div>`;
-              })
-              .join("")}
+        <!-- Barra inferior estilo Spire -->
+        <footer class="barra-inferior">
+          <div class="orbe-energia" title="Energía disponible" aria-label="Energía ${c.player.energy} de ${c.player.maxEnergy}">
+            <span class="orbe-valor">${c.player.energy}/${c.player.maxEnergy}</span>
+            <span class="orbe-nombre">Energía</span>
           </div>
-        </section>
+          <button class="pila pila-robo" id="btn-robo" title="Ver cartas por robar (${c.deck.length})">
+            <span class="pila-icono">🂠</span>
+            <span class="pila-nombre">Robo</span>
+            <span class="pila-contador">${c.deck.length}</span>
+          </button>
+          <section class="mano" data-modo="${c.pendingDiscard ? "descarte" : "normal"}">
+            ${c.pendingDiscard ? `<div class="mano-aviso">Selecciona una carta para descartar</div>` : ""}
+            <div class="cartas">
+              ${c.hand
+                .map((cardId, i) => {
+                  const card = CARDS[cardId];
+                  const jugable = c.puedeJugar(cardId);
+                  return `
+                  <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}">
+                    <div class="carta-costo">${card.cost}</div>
+                    <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" />
+                    <div class="carta-nombre">${card.name}</div>
+                    <div class="carta-tipo">${card.type}</div>
+                    <div class="carta-descripcion">${card.description}</div>
+                  </div>`;
+                })
+                .join("")}
+            </div>
+          </section>
+          <div class="zona-fin">
+            <button class="btn-fin-turno" id="btn-fin-turno" ${c.busy || c.over || c.pendingDiscard ? "disabled" : ""}>
+              Finalizar turno
+            </button>
+          </div>
+          <button class="pila pila-descarte" id="btn-descarte" title="Ver pila de descartes (${c.discard.length})">
+            <span class="pila-icono">🗑</span>
+            <span class="pila-nombre">Descarte</span>
+            <span class="pila-contador">${c.discard.length}</span>
+          </button>
+        </footer>
+
+        <div class="panel-estado" hidden>
+          <div class="energia"><span>Energía</span><strong>${c.player.energy}/${c.player.maxEnergy}</strong></div>
+          <div class="mazos">
+            <span>Pila de robo: <b>${c.deck.length}</b></span>
+            <span>Descarte: <b>${c.discard.length}</b></span>
+          </div>
+        </div>
       </div>
 
       ${c.over ? `<div class="overlay-fin"><div class="mensaje-fin">${c.boss.hp <= 0 ? "¡VICTORIA!" : "DERROTA"}<button onclick="location.reload()">Reintentar</button></div></div>` : ""}
 
-      ${this.modalAbierto ? this.renderModalBaraja() : ""}
+      ${this.modalAbierto && this.vistaModal === "baraja" ? this.renderModalBaraja() : ""}
+      ${this.modalAbierto && this.vistaModal === "robo" ? this.renderModalPila("robo") : ""}
+      ${this.modalAbierto && this.vistaModal === "descarte" ? this.renderModalPila("descarte") : ""}
     `;
 
     // Eventos
@@ -127,25 +170,51 @@ export class UI {
     if (btn) btn.addEventListener("click", () => c.finalizarTurno());
     const btnBaraja = this.root.querySelector("#btn-baraja");
     if (btnBaraja) btnBaraja.addEventListener("click", () => this.abrirModalBaraja());
+    const btnRobo = this.root.querySelector("#btn-robo");
+    if (btnRobo) btnRobo.addEventListener("click", () => this.abrirModalRobo());
+    const btnDescarte = this.root.querySelector("#btn-descarte");
+    if (btnDescarte) btnDescarte.addEventListener("click", () => this.abrirModalDescarte());
     if (this.modalAbierto) this.bindEventosModal();
   }
 
-  // ---------- Modal: baraja completa ----------
+  // ---------- Modales ----------
   abrirModalBaraja() {
     if (!this.combat || this.combat.busy) return;
     this.modalAbierto = true;
+    this.vistaModal = "baraja";
     this.render();
-    // Accesibilidad: el foco entra en el modal para que Escape funcione de inmediato
     const modal = this.root.querySelector("#modal-baraja");
     if (modal) modal.focus();
   }
 
-  cerrarModalBaraja() {
-    this.modalAbierto = false;
+  abrirModalRobo() {
+    if (!this.combat || this.combat.busy) return;
+    this.modalAbierto = true;
+    this.vistaModal = "robo";
     this.render();
-    // Devuelve el foco al botón de la baraja para continuar jugando con teclado
+    const modal = this.root.querySelector("#modal-robo");
+    if (modal) modal.focus();
+  }
+
+  abrirModalDescarte() {
+    if (!this.combat || this.combat.busy) return;
+    this.modalAbierto = true;
+    this.vistaModal = "descarte";
+    this.render();
+    const modal = this.root.querySelector("#modal-descarte");
+    if (modal) modal.focus();
+  }
+
+  cerrarModal() {
+    this.modalAbierto = false;
+    this.vistaModal = null;
+    this.render();
     const btn = this.root.querySelector("#btn-baraja");
     if (btn) btn.focus();
+  }
+
+  cerrarModalBaraja() {
+    this.cerrarModal();
   }
 
   renderModalBaraja() {
@@ -156,8 +225,6 @@ export class UI {
       return `<span class="resumen-item">${info ? `${info.icono} ${info.nombre}` : "Sin tipo"} ${g.cartas.length}</span>`;
     }).join("");
 
-    // Animación escalonada: cada grupo y carta entra con un retardo índice*40ms
-    // (techo en 30 elementos para que la última carta no espere demasiado)
     const gruposHtml = grupos
       .map((grupo, gi) => {
         const info = grupo.tipo ? INFO_TIPOS[grupo.tipo] : null;
@@ -200,20 +267,52 @@ export class UI {
     `;
   }
 
+  renderModalPila(cual) {
+    const esRobo = cual === "robo";
+    const ids = esRobo ? this.combat.deck : this.combat.discard;
+    const cartas = ids.map((id) => CARDS[id]).filter(Boolean);
+    const idModal = esRobo ? "modal-robo" : "modal-descarte";
+    const titulo = esRobo ? `🂠 Pila de robo (${cartas.length} por robar)` : `🗑 Pila de descartes (${cartas.length})`;
+    const aria = esRobo ? `Pila de robo: ${cartas.length} cartas por robar` : `Pila de descartes: ${cartas.length} cartas`;
+    const vacio = esRobo ? "No quedan cartas por robar." : "Aún no hay descartes.";
+    return `
+      <div class="modal-baraja modal-pila" id="${idModal}" role="dialog" aria-modal="true" aria-label="${aria}" tabindex="-1">
+        <div class="modal-contenido">
+          <div class="modal-cabecera">
+            <h2>${titulo}</h2>
+            <button class="btn-cerrar-modal" id="btn-cerrar-modal" aria-label="Cerrar vista de pila">×</button>
+          </div>
+          <div class="modal-grupos">
+            ${cartas.length === 0 ? `<p class="pila-vacia">${vacio}</p>` : `
+            <div class="modal-cartas">
+              ${cartas.map((card, ci) => `
+              <div class="carta carta-vista" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
+                <div class="carta-costo">${card.cost}</div>
+                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+                <div class="carta-nombre">${card.name}</div>
+                <div class="carta-tipo">${card.type}</div>
+                <div class="carta-descripcion">${card.description}</div>
+              </div>`).join("")}
+            </div>`}
+          </div>
+          <button class="btn-volver" id="btn-volver">Volver al combate</button>
+        </div>
+      </div>
+    `;
+  }
+
   bindEventosModal() {
-    const modal = this.root.querySelector("#modal-baraja");
+    const modal = this.root.querySelector("#modal-baraja, #modal-robo, #modal-descarte");
     const btnCerrar = this.root.querySelector("#btn-cerrar-modal");
     const btnVolver = this.root.querySelector("#btn-volver");
-    // Cierre: botón X, botón Volver y clic en el fondo del modal
-    if (btnCerrar) btnCerrar.addEventListener("click", () => this.cerrarModalBaraja());
-    if (btnVolver) btnVolver.addEventListener("click", () => this.cerrarModalBaraja());
+    if (btnCerrar) btnCerrar.addEventListener("click", () => this.cerrarModal());
+    if (btnVolver) btnVolver.addEventListener("click", () => this.cerrarModal());
     if (modal) {
       modal.addEventListener("click", (e) => {
-        if (e.target === modal) this.cerrarModalBaraja();
+        if (e.target === modal) this.cerrarModal();
       });
-      // Cierra con la tecla Escape
       modal.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") this.cerrarModalBaraja();
+        if (e.key === "Escape") this.cerrarModal();
       });
     }
   }

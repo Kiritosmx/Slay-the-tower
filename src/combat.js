@@ -178,6 +178,16 @@ export class Combat {
     return resultado;
   }
 
+  // ---------- Pilas de robo y descarte (vista estilo Spire) ----------
+  // Devuelven las cartas con su id para poder renderizarlas en modales.
+  obtenerPilaRobo() {
+    return this.deck.map((id) => ({ id, ...CARDS[id] })).filter((c) => c.name);
+  }
+
+  obtenerPilaDescarte() {
+    return this.discard.map((id) => ({ id, ...CARDS[id] })).filter((c) => c.name);
+  }
+
   calcularDañoJugador(base) {
     let dmg = base;
     if (this.player.weak > 0) dmg = Math.floor(dmg * 0.75);

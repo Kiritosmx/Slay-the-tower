@@ -62,12 +62,19 @@ export function crearBarajaInicial() {
   ];
 }
 
+// ---------- JUGADOR ----------
+export const PLAYER = {
+  name: "La Silenciosa",
+  maxHp: 60,
+  image: "/silent_sin_fondo.png",
+};
+
 // ---------- JEFE ----------
 // Intenciones variable: daño / Débil (reduce tu daño) / rompe escudo / drenado pasivo
 export const BOSS = {
   name: "Centinela de la Torre",
   maxHp: 200,
-  image: IMG + "?prompt=" + encodeURIComponent("tower guardian boss, giant armored golem made of dark stone with glowing green runes, imposing fantasy game boss, vertical composition, dark atmosphere, stylized game illustration, no text") + "&image_size=portrait_4_3",
+  image: "/boss2_sin_fondo.png",
 };
 
 // Cada intención se ejecuta contra el objeto combat
