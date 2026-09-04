@@ -65,15 +65,17 @@ export function crearBarajaInicial() {
 // ---------- JUGADOR ----------
 export const PLAYER = {
   name: "La Silenciosa",
-  maxHp: 60,
+  maxHp: 72,
   image: "/silent_sin_fondo.png",
 };
 
 // ---------- JEFE ----------
+// Rebalanceo: 200→120 PS y daños reducidos para una pelea de 8-10 turnos
+// ganable (antes el daño medio ~11/turno durante ~15 turnos era letal).
 // Intenciones variable: daño / Débil (reduce tu daño) / rompe escudo / drenado pasivo
 export const BOSS = {
   name: "Centinela de la Torre",
-  maxHp: 200,
+  maxHp: 120,
   image: "/boss2_sin_fondo.png",
 };
 
@@ -83,7 +85,7 @@ export const INTENCIONES_JEFE = [
     id: "atacar",
     icon: "⚔",
     detail: (intent) => `Inflige ${intent.valor} de daño.`,
-    valor: 15,
+    valor: 10,
     ejecutar(combat) {
       combat.jugadorRecibirDaño(this.valor, "slash");
     },
@@ -92,7 +94,7 @@ export const INTENCIONES_JEFE = [
     id: "aplastar",
     icon: "🔨",
     detail: (intent) => `Inflige ${intent.valor} de daño.`,
-    valor: 22,
+    valor: 16,
     ejecutar(combat) {
       combat.jugadorRecibirDaño(this.valor, "heavy");
     },
@@ -100,8 +102,8 @@ export const INTENCIONES_JEFE = [
   {
     id: "debilitar",
     icon: "🕸",
-    detail: () => "Aplica 2 de Débil. Tus ataques infligen 25% menos de daño.",
-    valor: 2,
+    detail: () => "Aplica 1 de Débil. Tus ataques infligen 25% menos de daño.",
+    valor: 1,
     ejecutar(combat) {
       combat.player.weak = (combat.player.weak || 0) + this.valor;
     },
@@ -110,7 +112,7 @@ export const INTENCIONES_JEFE = [
     id: "romperEscudo",
     icon: "🛡",
     detail: (intent) => `Elimina todo tu Bloqueo y inflige ${intent.valor} de daño.`,
-    valor: 8,
+    valor: 6,
     ejecutar(combat) {
       combat.player.block = 0;
       combat.jugadorRecibirDaño(this.valor, "magic");
@@ -120,7 +122,7 @@ export const INTENCIONES_JEFE = [
     id: "drenar",
     icon: "💀",
     detail: (intent) => `Drena ${intent.valor} de vida. Ignora tu Bloqueo.`,
-    valor: 10,
+    valor: 6,
     ejecutar(combat) {
       combat.jugadorRecibirDañoDirecto(this.valor, "drain");
     },

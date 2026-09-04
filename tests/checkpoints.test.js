@@ -90,6 +90,7 @@ describe("CP-02: Motor de combate operativo", () => {
 
   it("jugar una carta consume energía y aplica efectos", () => {
     const combat = crearCombate();
+    combat.hand[0] = "defend";
     const energiaAntes = combat.player.energy;
     const idx = combat.hand.indexOf("defend");
     combat.jugarCarta(idx);
@@ -118,6 +119,8 @@ describe("CP-03: Condiciones de fin de partida", () => {
   it("jefe a 0 PS desencadena victoria y bloquea el juego", () => {
     const combat = crearCombate();
     combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
     combat.jugarCarta(combat.hand.indexOf("strike"));
     expect(combat.over).toBe(true);
     expect(combat.puedeJugar("strike")).toBe(false);

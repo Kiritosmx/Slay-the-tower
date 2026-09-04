@@ -1,5 +1,5 @@
 // Motor de combate por turnos estilo Slay the Spire
-import { CARDS, crearBarajaInicial, BOSS, elegirIntencionJefe, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
+import { CARDS, crearBarajaInicial, BOSS, PLAYER, elegirIntencionJefe, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
 
 function barajar(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -13,9 +13,9 @@ export class Combat {
   constructor({ onStateChange, onGameOver, onVictory, onLog }) {
     // Jugador
     this.player = {
-      name: "La Silenciosa",
-      hp: 60,
-      maxHp: 60,
+      name: PLAYER.name,
+      hp: PLAYER.maxHp,
+      maxHp: PLAYER.maxHp,
       block: 0,
       energy: 3,
       maxEnergy: 3,

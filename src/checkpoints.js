@@ -217,8 +217,9 @@ export const CHECKPOINTS = [
       combat.robar(2);
       comprobaciones.push(comprobacion("límite de mano respetado (máx 10)", combat.hand.length === 10, `${combat.hand.length} cartas`));
 
-      // Reglas de juego (combate nuevo: mano virgen garantizada con "defend")
+      // Reglas de juego (combate nuevo: "defend" garantizada en mano)
       const { combat: combatCartas } = crearCombatePrueba();
+      combatCartas.hand[0] = "defend";
       const energiaAntes = combatCartas.player.energy;
       combatCartas.jugarCarta(combatCartas.hand.findIndex((c) => c === "defend"));
       comprobaciones.push(
@@ -253,8 +254,10 @@ export const CHECKPOINTS = [
       const combat = combatAsincrónico();
       combat.iniciarCombate();
 
-      // Victoria: jefe a 0 PS
+      // Victoria: jefe a 0 PS (mano determinista con Golpe garantizado)
       combat.boss.hp = 1;
+      combat.hand[0] = "strike";
+      combat.player.energy = combat.player.maxEnergy;
       const idxGolpe = combat.hand.indexOf("strike");
       combat.jugarCarta(idxGolpe);
       comprobaciones.push(

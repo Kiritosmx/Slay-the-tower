@@ -198,6 +198,10 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-04 23:20 | `src/styles.css` | Fondo cueva solo CSS (capas radiales+viñeta, sin usar la captura), sprites sin marco con sombra-suelo elíptica, barras 260px rojas→azules, orbe energía circular, pilas con contador, fin de turno hexagonal, responsive 900/600px | Fondo parecido al ejemplo + layout Spire completo | TA | Alto |
 | 2026-09-04 23:25 | `tests/checkpoints.test.js` | Jefe acepta imagen local `/...`; nuevo bloque `Estética Spire` (6 pruebas): reparto izq/dcha, orbe+contadores, barra azul con bloqueo, modales robo/descarte, métodos del motor | Fijar el nuevo hito visual (54 pruebas) | TA | Alto |
 | 2026-09-04 23:30 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.12 kB JS / gzip 12.63 kB) | Confirmar estética sin regresiones | TA | Hito ✅ |
+| 2026-09-05 00:10 | `src/styles.css`, `src/ui.js` | Barras recolocadas justo bajo cada sprite (`.entidad` en columna centrada); jefe al doble de tamaño (170×220 → 340×440, 2x en tablet/móvil); cartas rediseñadas estilo Spire (`data-tipo`, marco por tipo, retrato enmarcado, orbe hexagonal, banda de nombre, pergamino de descripción) | Layout y cartas fieles al ejemplo | TA | Alto |
+| 2026-09-05 00:15 | `src/gamedata.js`, `src/combat.js` | Rebalanceo: jugador 60→72 PS (`PLAYER.maxHp`, el motor ya no hardcodea), jefe 200→120 PS; intenciones 15→10, 22→16, Débil 2→1, rompe-escudo 8→6, drenar 10→6. Pelea de 8-10 turnos ganable (antes ~15 turnos a ~11 daño/turno = letal) | Dificultad justa pero exigente | TA | **Crítico** |
+| 2026-09-05 00:20 | `src/checkpoints.js`, `tests/checkpoints.test.js` | Checkpoints y tests deterministas: Golpe/Defensa garantizados en mano para CP-02/CP-03 (la mano aleatoria podía no traerlos, ~2.6% de falsos fallos) | Eliminar flaky preexistente | TA | Corrección |
+| 2026-09-05 00:25 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK (x2) + build OK (39.29 kB JS / gzip 12.66 kB) | Confirmar layout+balance sin regresiones | TA | Hito ✅ |
 
 ---
 

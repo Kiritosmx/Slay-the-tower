@@ -118,7 +118,7 @@ export class UI {
                   const card = CARDS[cardId];
                   const jugable = c.puedeJugar(cardId);
                   return `
-                  <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}">
+                  <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}" data-tipo="${card.type}">
                     <div class="carta-costo">${card.cost}</div>
                     <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" />
                     <div class="carta-nombre">${card.name}</div>
@@ -238,7 +238,7 @@ export class UI {
             ${grupo.cartas
               .map(
                 (card, ci) => `
-            <div class="carta carta-vista" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
+            <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
               <div class="carta-costo">${card.cost}</div>
               <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
               <div class="carta-nombre">${card.name}</div>
@@ -286,7 +286,7 @@ export class UI {
             ${cartas.length === 0 ? `<p class="pila-vacia">${vacio}</p>` : `
             <div class="modal-cartas">
               ${cartas.map((card, ci) => `
-              <div class="carta carta-vista" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
+              <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
                 <div class="carta-costo">${card.cost}</div>
                 <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
                 <div class="carta-nombre">${card.name}</div>
