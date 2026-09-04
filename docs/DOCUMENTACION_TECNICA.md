@@ -223,6 +223,7 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 03:20 | `src/ui.js`, `src/main.js`, `src/styles.css` | `Piso X/5`, botón 🔊/🔇, sprite del piso (`fondo-escena` en 2 y 4), overlay `¡TORRE CONQUISTADA!`, precarga de 9 recursos, desbloqueo de audio al primer toque | Integración total | TA | Alto |
 | 2026-09-05 03:25 | `src/checkpoints.js`, `tests/checkpoints.test.js` | CP-05 usa el nombre del jefe del piso, CP-07 verifica 9 recursos (robusto a caché compartida); +11 pruebas (67→78): pisos, avance, cura, victoria total, sonidos, botón mute | Cobertura de pisos+sonido | TA | Alto |
 | 2026-09-05 03:30 | `tests/`, `dist/` | **Verificación de hito**: 78/78 pruebas OK (x2) + build OK (55.93 kB JS / gzip 17.25 kB) | Confirmar pisos+sonidos sin regresiones | TA | Hito ✅ |
+| 2026-09-05 04:00 | `cartas/` **(nueva)** | 182 imágenes oficiales de la Silenciosa (91 base + 91 Plus) a tamaño completo 734×916 desde la wiki, nombres ingleses originales; verificadas una a una (firma PNG) | Galería local de cartas | TA | Medio |
 
 ---
 
