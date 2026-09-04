@@ -604,6 +604,7 @@ describe("Estética Spire: escena y pilas", () => {
     expect(lados[0]).toMatch(/lado-jugador/);
     expect(lados[1]).toMatch(/lado-jefe/);
     expect(contenedor.querySelector(".sprite-jugador").getAttribute("src")).toContain("silent_sin_fondo");
+    expect(contenedor.querySelector(".sprite-jefe").getAttribute("src")).toContain("/boss.png");
     expect(contenedor.querySelector(".sprite-jefe").getAttribute("alt")).toContain("Centinela");
   });
 

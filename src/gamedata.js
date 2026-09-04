@@ -76,7 +76,7 @@ export const PLAYER = {
 export const BOSS = {
   name: "Centinela de la Torre",
   maxHp: 120,
-  image: "/boss2_sin_fondo.png",
+  image: "/boss.png",
 };
 
 // Cada intención se ejecuta contra el objeto combat

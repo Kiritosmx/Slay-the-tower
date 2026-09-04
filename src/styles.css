@@ -151,26 +151,23 @@ body::before {
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.7));
   background: transparent;
   border: none;
-  /* Funde los bordes rectangulares del PNG con la cueva */
-  -webkit-mask-image: radial-gradient(ellipse 74% 74% at 50% 46%, #000 58%, transparent 80%);
-  mask-image: radial-gradient(ellipse 74% 74% at 50% 46%, #000 58%, transparent 80%);
 }
 
 .sprite-jugador {
   width: var(--sprite-w);
   height: var(--sprite-h);
+  /* El PNG de la Silenciosa trae fondo horneado: se funden los bordes */
+  -webkit-mask-image: radial-gradient(ellipse 74% 74% at 50% 46%, #000 58%, transparent 80%);
+  mask-image: radial-gradient(ellipse 74% 74% at 50% 46%, #000 58%, transparent 80%);
 }
 
 /* Jefe al doble exacto de la Silenciosa (2x ancho y alto).
-   El PNG trae fondo negro + flecha superior + barra 252/252 inferior
-   horneadas: el blend funde el negro y el recorte las oculta. */
+   PNG con transparencia real: sin blends ni recortes. */
 .sprite-jefe {
   width: calc(var(--sprite-w) * 2);
   height: calc(var(--sprite-h) * 2);
-  object-fit: cover;
-  object-position: 50% 42%;
-  mix-blend-mode: screen;
-  clip-path: inset(8% 3% 11% 3%);
+  object-fit: contain;
+  object-position: 50% 50%;
 }
 
 .entidad-info { display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%; position: relative; z-index: 1; margin-top: -6px; }

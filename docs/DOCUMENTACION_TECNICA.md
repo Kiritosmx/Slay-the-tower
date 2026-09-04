@@ -206,6 +206,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 01:05 | `public/fondo-batalla.svg` **(nuevo)** | Fondo de batalla generado estilo Spire (cueva 1600×900: estalactitas, costillas orgánicas, rocas, suelo con reflejo, partículas y viñeta); `body` lo usa con degradados de respaldo | Fondo parecido al original sin depender de capturas | TA | Alto |
 | 2026-09-05 01:10 | `src/ui.js`, `src/styles.css` | Cartas como el original: orden coste→nombre→retrato→tipo→descripción, 150×214 (modal igual, móvil 118×178), retrato 86px enmarcado, banda de nombre con hueco para el orbe hexagonal | Cartas legibles y proporcionadas | TA | Alto |
 | 2026-09-05 01:15 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.29 kB JS / gzip 12.66 kB) | Confirmar jefe/fondo/cartas sin regresiones | TA | Hito ✅ |
+| 2026-09-05 01:30 | `Images/image.png` → `Images/boss.png` + `public/boss.png` | Nueva apariencia del jefe desde `image.png` (1024×1024 RGB): fondo blanco eliminado por script propio (Node nativo, umbral por canal mínimo, 85.5% transparente) → `BOSS.image` = `/boss.png`; retirados blend/recorte (era para el PNG anterior) | Jefe limpio sobre la cueva, tamaño 2x intacto | TA | Alto |
+| 2026-09-05 01:35 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.28 kB JS / gzip 12.66 kB) | Confirmar nueva apariencia sin regresiones | TA | Hito ✅ |
 
 ---
 
