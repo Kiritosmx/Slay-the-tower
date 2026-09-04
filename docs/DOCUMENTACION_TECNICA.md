@@ -202,6 +202,10 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 00:15 | `src/gamedata.js`, `src/combat.js` | Rebalanceo: jugador 60→72 PS (`PLAYER.maxHp`, el motor ya no hardcodea), jefe 200→120 PS; intenciones 15→10, 22→16, Débil 2→1, rompe-escudo 8→6, drenar 10→6. Pelea de 8-10 turnos ganable (antes ~15 turnos a ~11 daño/turno = letal) | Dificultad justa pero exigente | TA | **Crítico** |
 | 2026-09-05 00:20 | `src/checkpoints.js`, `tests/checkpoints.test.js` | Checkpoints y tests deterministas: Golpe/Defensa garantizados en mano para CP-02/CP-03 (la mano aleatoria podía no traerlos, ~2.6% de falsos fallos) | Eliminar flaky preexistente | TA | Corrección |
 | 2026-09-05 00:25 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK (x2) + build OK (39.29 kB JS / gzip 12.66 kB) | Confirmar layout+balance sin regresiones | TA | Hito ✅ |
+| 2026-09-05 01:00 | `src/styles.css` | Jefe fijado al doble exacto vía `calc(var(--sprite-w)*2)` en escritorio/tablet/móvil; `.sprite-jefe` con `mix-blend-mode:screen` (funde el negro) + `clip-path:inset(8% 3% 11% 3%)` (oculta flecha y barra 252/252 horneadas) + máscara radial (funde bordes) | `boss2_sin_fondo.png` como apariencia real del enemigo | TA | Alto |
+| 2026-09-05 01:05 | `public/fondo-batalla.svg` **(nuevo)** | Fondo de batalla generado estilo Spire (cueva 1600×900: estalactitas, costillas orgánicas, rocas, suelo con reflejo, partículas y viñeta); `body` lo usa con degradados de respaldo | Fondo parecido al original sin depender de capturas | TA | Alto |
+| 2026-09-05 01:10 | `src/ui.js`, `src/styles.css` | Cartas como el original: orden coste→nombre→retrato→tipo→descripción, 150×214 (modal igual, móvil 118×178), retrato 86px enmarcado, banda de nombre con hueco para el orbe hexagonal | Cartas legibles y proporcionadas | TA | Alto |
+| 2026-09-05 01:15 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.29 kB JS / gzip 12.66 kB) | Confirmar jefe/fondo/cartas sin regresiones | TA | Hito ✅ |
 
 ---
 
