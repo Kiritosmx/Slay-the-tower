@@ -1,5 +1,5 @@
 // Motor de combate por turnos estilo Slay the Spire
-import { CARDS, crearBarajaInicial, BOSS, PLAYER, PISOS, crearJefeDePiso, elegirIntencionJefe, elegirRecompensas, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
+import { CARDS, crearBarajaInicial, BOSS, PLAYER, PISOS, crearJefeDePiso, elegirIntencionJefe, elegirRecompensas, esMejorable, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
 
 function barajar(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -21,6 +21,7 @@ export class Combat {
       maxEnergy: 3,
       weak: 0,          // Débil: ataques del jugador -25%
       vulnerable: 0,
+      intangible: 0,    // Intangible: el daño recibido baja a 1
     };
     // Jefe (enemigo del piso actual)
     this.piso = 0;
@@ -35,8 +36,42 @@ export class Combat {
     this.over = false;
     this.busy = false;
     this.ultimaAccion = "";
-    // Modo descarte pendiente (Superviviente)
+    // Modo descarte pendiente (elegir N descartes tras jugar)
     this.pendingDiscard = null;
+    // Mejora pendiente (elegir 1 carta para Plus al empezar cada piso)
+    this.mejoraPendiente = false;
+    // Pesadilla pendiente: id elegido que dará 3 copias el próximo turno
+    this.pendingNightmare = null;
+    // Poderes y contadores del motor extendido
+    this.powers = {};
+    this.destrezaPerm = 0;
+    this.destrezaTurno = 0;
+    this.espinas = 0;
+    this.dobleBloqueo = false;
+    this.manoGratis = false;
+    this.sinRobo = false;
+    this.pounceFree = false;
+    this.doubleNext = false;
+    this.retenerMano = false;
+    this.expertiseRetain = false;
+    this.concoctN = 0;
+    this.strangleN = 0;
+    this.doubleSkill = 0;
+    this.nextBlock = 0;
+    this.nextEnergy = 0;
+    this.nextDraw = 0;
+    this.corrosiveN = 0;
+    this.ataquesTurno = 0;
+    this.habilidadesTurno = 0;
+    this.robadasCombate = 0;
+    this.descartadasTurno = 0;
+    this.esPrimerTurno = true;
+    this.ultimaCartaJugada = null;
+    this.recompensaBonus = false;
+    this.bonusUsado = false;
+    this.conservarBloqueo = false;
+    this._origenYaDescartado = false;
+    this._ultimoX = 0;
     // Recompensa de victoria: 3 opciones, se elige 1 para la baraja
     this.recompensa = null;
     this.recompensaElegida = null;
@@ -57,10 +92,53 @@ export class Combat {
   turnoJugador() {
     this.turn++;
     this.player.energy = this.player.maxEnergy;
-    this.player.block = 0; // El bloqueo no persiste entre turnos del jugador
+    // El bloqueo no persiste, salvo Desenfoque (1 turno)
+    if (this.conservarBloqueo) this.conservarBloqueo = false;
+    else this.player.block = 0;
+    // Bloqueo/energía/robo programados para este turno
+    if (this.nextBlock > 0) { this.player.block += this.nextBlock; this.nextBlock = 0; }
+    if (this.nextEnergy > 0) { this.player.energy += this.nextEnergy; this.nextEnergy = 0; }
     // Reducir debuffs al inicio del turno del jugador
     if (this.player.weak > 0) this.player.weak--;
     if (this.player.vulnerable > 0) this.player.vulnerable--;
+    if (this.player.intangible > 0) this.player.intangible--;
+    // Destreza y banderas de "este turno" se reinician
+    this.destrezaTurno = 0;
+    this.dobleBloqueo = false;
+    this.manoGratis = false;
+    this.sinRobo = false;
+    this.pounceFree = false;
+    this.retenerMano = false;
+    this.expertiseRetain = false;
+    this.concoctN = 0;
+    this.strangleN = 0;
+    this.corrosiveN = 0;
+    this.ataquesTurno = 0;
+    this.habilidadesTurno = 0;
+    this.descartadasTurno = 0;
+    if (this.powers.phantom) this.powers.phantomUsado = false;
+    // Poderes de inicio de turno
+    if (this.powers.fumes) this.aplicarVeneno(this.powers.fumes);
+    if (this.powers.infBlades) this.anadirDagas(this.powers.infBlades);
+    if (this.powers.tools) { this.robar(1); this.forzarDescarte(1); }
+    // Pesadilla: las 3 copias llegan a la mano
+    if (this.pendingNightmare) {
+      for (let k = 0; k < 3 && this.hand.length < 10; k++) this.hand.push(this.pendingNightmare);
+      this.ultimaAccion = "La Pesadilla se hace realidad";
+      this.pendingNightmare = null;
+    }
+    // Depredador: robo programado
+    if (this.nextDraw > 0) { const n = this.nextDraw; this.nextDraw = 0; this.robar(n); }
+    // Innatas del primer turno garantizadas en la mano inicial
+    if (this.esPrimerTurno) {
+      this.esPrimerTurno = false;
+      const innatas = this.deck.filter((id) => CARDS[id]?.fx?.innate);
+      for (const id of innatas) {
+        if (this.hand.length >= 10) break;
+        this.deck.splice(this.deck.indexOf(id), 1);
+        this.hand.push(id);
+      }
+    }
     // Nueva intención del jefe (se muestra durante el turno del jugador).
     // Se clona con el daño de este piso para no contaminar la base.
     const base = elegirIntencionJefe(this.boss.lastIntentId);
@@ -75,75 +153,345 @@ export class Combat {
   }
 
   robar(n) {
+    const robadas = [];
     for (let i = 0; i < n; i++) {
+      if (this.sinRobo) break;
       if (this.hand.length >= 10) break;
       if (this.deck.length === 0) {
         if (this.discard.length === 0) break;
         this.deck = barajar([...this.discard]);
         this.discard = [];
       }
-      this.hand.push(this.deck.pop());
+      const id = this.deck.pop();
+      this.hand.push(id);
+      robadas.push(id);
+      this.robadasCombate++;
+      // Ganchos al robar durante tu turno
+      if (this.powers.speedster) this.danoDirectoJefe(this.powers.speedster, "speed");
+      if (this.corrosiveN > 0) this.aplicarVeneno(this.corrosiveN);
+    }
+    if (robadas.length > 0) this.onSonido("robo");
+    return robadas;
+  }
+
+  // ---------- Ayudas del motor extendido ----------
+  aplicarVeneno(n) {
+    if (!n || n <= 0 || this.over) return;
+    this.boss.poison = (this.boss.poison || 0) + n;
+    this.onSonido("veneno");
+    this.onLog(`El jefe sufre ${n} de Veneno.`);
+  }
+
+  // Daño directo que ignora Bloqueo (veneno, serpiente, estrangular...)
+  danoDirectoJefe(n, tipo = "poison") {
+    if (!n || n <= 0 || this.over) return;
+    this.boss.hp = Math.max(0, this.boss.hp - n);
+    this.flashBoss(tipo);
+  }
+
+  anadirDagas(n) {
+    for (let i = 0; i < n; i++) {
+      if (this.hand.length >= 10) { this.discard.push("shiv"); continue; }
+      this.hand.push("shiv");
+    }
+    if (n > 0) this.onLog(`Añades ${n} Daga(s) a tu mano.`);
+  }
+
+  // Daño de una Daga con Precisión y primera fantasma
+  danoDaga() {
+    let dmg = 4 + (this.powers.accuracy || 0);
+    if (this.powers.phantom && !this.powers.phantomUsado) {
+      dmg += this.powers.phantom;
+      this.powers.phantomUsado = true;
+    }
+    return dmg;
+  }
+
+  forzarDescarte(n) {
+    // Descarta sin elección (Herramientas del Oficio al robar)
+    for (let i = 0; i < n && this.hand.length > 0; i++) {
+      this._descartar(this.hand[this.hand.length - 1]);
+    }
+  }
+
+  // Descarte central: Escurridiza y Mente Maestra juegan gratis al descartar
+  _descartar(cardId) {
+    const idx = this.hand.indexOf(cardId);
+    if (idx < 0) return;
+    const card = CARDS[cardId];
+    this.hand.splice(idx, 1);
+    this.descartadasTurno++;
+    const esSly = card?.fx?.sly || (card?.type === "Habilidad" && this.powers.masterplanner);
+    if (esSly && !this.over) {
+      this.ultimaAccion = `${card.name} se juega sola (Escurridiza)`;
+      this._efectos(card, cardId);
+      this.discard.push(cardId);
+    } else {
+      this.discard.push(cardId);
     }
   }
 
   // ---------- Jugando cartas ----------
+  // Coste real: X consume toda la energía; Punto de Mira descuenta por
+  // habilidad; la próxima Habilidad y Tiempo Bala la dejan en 0.
+  costeEfectivo(card) {
+    if (!card) return 99;
+    if (card.cost === "X") return this.player.energy;
+    let coste = card.cost ?? 0;
+    if (card.fx?.pin) coste = Math.max(0, coste - this.habilidadesTurno);
+    if (card.type === "Habilidad" && this.pounceFree) coste = 0;
+    if (this.manoGratis) coste = 0;
+    return coste;
+  }
+
   puedeJugar(cardId) {
     const card = CARDS[cardId];
     if (!card || this.over || this.busy) return false;
-    if (this.pendingDiscard) return false;
-    if (this.player.energy < card.cost) return false;
+    if (this.pendingDiscard || this.mejoraPendiente || this.pendingNightmare) return false;
+    if (card.cost === "X" && this.player.energy <= 0) return false;
+    if (this.player.energy < this.costeEfectivo(card)) return false;
+    if (card.fx?.grandFinale && this.deck.length > 0) return false;
     return true;
   }
 
   jugarCarta(indiceMano) {
-    if (!this.puedeJugar(this.hand[indiceMano])) return;
     const cardId = this.hand[indiceMano];
+    if (!this.puedeJugar(cardId)) return;
     const card = CARDS[cardId];
     this.hand.splice(indiceMano, 1);
-    this.player.energy -= card.cost;
+    const coste = this.costeEfectivo(card);
+    this._ultimoX = card.cost === "X" ? this.player.energy : 0;
+    this.player.energy -= coste;
+    if (card.type === "Habilidad" && this.pounceFree) this.pounceFree = false;
+    this.ultimaCartaJugada = cardId;
 
-    // --- Efectos de la carta ---
-    if (card.block) {
-      this.player.block += card.block;
-      this.onSonido("bloqueo");
-    }
-    if (card.damage) {
-      const dmg = this.calcularDañoJugador(card.damage);
-      this.jefeRecibirDaño(dmg, "slash");
-      this.onSonido("ataque");
-    } else if (!card.block) {
-      this.onSonido("habilidad");
-    }
-    if (card.weak) {
-      this.boss.weak += card.weak;
+    this._efectos(card, cardId);
+    // Ráfaga: la Habilidad se juega una segunda vez
+    if (card.type === "Habilidad" && this.doubleSkill > 0 && !this.over) {
+      this.doubleSkill--;
+      this._efectos(card, cardId);
     }
 
-    // Superviviente: requiere descartar 1 carta
-    if (card.discard) {
-      if (this.hand.length > 0) {
-        this.pendingDiscard = true;
-        this.ultimaAccion = `${card.name}: elige una carta para descartar`;
-      } else {
-        // Si es la última carta de la mano no hay nada que descartar: se resuelve igual
-        this.discard.push(cardId);
-      }
-    } else {
+    if (card.type === "Ataque") this.ataquesTurno++;
+    if (card.type === "Habilidad") {
+      this.habilidadesTurno++;
+      if (this.powers.afterimage) this.ganarBloqueo(this.powers.afterimage);
+    }
+    if (this.powers.serpent && !this.over) this.danoDirectoJefe(this.powers.serpent, "serpent");
+    if (this.strangleN > 0 && !this.over) this.danoDirectoJefe(this.strangleN, "strangle");
+    if (this.powers.sneaky && card.type === "Ataque") this.ganarBloqueo(this.powers.sneaky);
+
+    // Destino de la carta jugada
+    if (card.fx?.exhaust) {
+      this.exhaust.push(cardId);
+    } else if (this.pendingDiscard) {
+      // Se resuelve al elegir los descartes (la carta espera fuera)
+      this.pendingOrigen = cardId;
+    } else if (!this._origenYaDescartado) {
       this.discard.push(cardId);
     }
+    this._origenYaDescartado = false;
 
     if (this.boss.hp <= 0) return this.ganar();
     this.notify();
   }
 
+  // Bloqueo con Destreza (permanente + turno) y Fusión Sombría
+  ganarBloqueo(base) {
+    let total = base + this.destrezaPerm + this.destrezaTurno;
+    if (this.dobleBloqueo) total *= 2;
+    if (total > 0) {
+      this.player.block += total;
+      this.onSonido("bloqueo");
+    }
+    return total;
+  }
+
+  // Aplica los efectos de una carta (una vez). Orden: defensa, daño,
+  // estados, robo/energía, invocaciones, descartes y poderes.
+  _efectos(card, cardId) {
+    const fx = card.fx || {};
+    // --- Bloqueo (con Destreza y Fusión) ---
+    if (fx.block) this.ganarBloqueo(fx.block);
+    // --- Daño directo ---
+    let dmg = 0;
+    if (fx.dmg) dmg = this.calcularDañoJugador(this.danoDagaSiEs(card, fx.dmg));
+    if (fx.finisher) dmg = this.calcularDañoJugador(fx.finisher * Math.max(1, this.ataquesTurno));
+    if (fx.flechettes) {
+      const n = this.hand.filter((id) => CARDS[id]?.type === "Habilidad").length;
+      dmg = this.calcularDañoJugador(fx.flechettes * Math.max(1, n));
+    }
+    if (fx.memento) dmg = this.calcularDañoJugador((fx.dmgBase ?? 0) + fx.memento * this.descartadasTurno);
+    if (fx.murder) dmg = this.calcularDañoJugador(fx.murder + this.robadasCombate);
+    if (fx.precise != null) dmg = this.calcularDañoJugador(Math.max(0, fx.precise - 2 * this.hand.length));
+    if (fx.skewerX != null) dmg = this.calcularDañoJugador(fx.skewerX * Math.max(1, this._ultimoX || 1));
+    if (fx.grandFinale != null) dmg = this.calcularDañoJugador(fx.grandFinale);
+    if (dmg > 0) {
+      if (this.doubleNext) { dmg *= 2; this.doubleNext = false; }
+      const hpAntes = this.boss.hp;
+      this.jefeRecibirDaño(dmg, "slash");
+      this.onSonido(card.type === "Ataque" ? "ataque" : "habilidad");
+      const sinBloqueo = hpAntes - this.boss.hp;
+      if (sinBloqueo > 0) {
+        if (this.powers.envenom) this.aplicarVeneno(this.powers.envenom);
+        if (this.concoctN > 0) this.aplicarVeneno(this.concoctN);
+      }
+      if ((cardId === "thehunt" || cardId === "thehunt+") && this.boss.hp <= 0) {
+        this.recompensaBonus = true;
+      }
+    } else if (fx.block || card.type === "Habilidad") {
+      this.onSonido("habilidad");
+    }
+    // --- Estados del jefe ---
+    if (fx.weak) this.boss.weak += fx.weak;
+    if (fx.vuln) this.boss.vulnerable += fx.vuln;
+    if (fx.poison) this.aplicarVeneno(fx.poison);
+    if (fx.poisonSiHay && (this.boss.poison || 0) > 0) this.aplicarVeneno(fx.poisonSiHay);
+    if (fx.mirage) this.ganarBloqueo(this.boss.poison || 0);
+    if (fx.expose) { this.boss.block = 0; this.boss.vulnerable += fx.expose; }
+    if (fx.outbreak && (this.boss.poison || 0) > 0) {
+      for (let t = 0; t < (this.powers.accelerant || 0) + 1 && !this.over; t++) {
+        this.danoDirectoJefe(this.boss.poison, "poison");
+      }
+      this.boss.poison = Math.max(0, (this.boss.poison || 0) - 1);
+    }
+    if (fx.knivesTrap != null) {
+      const dagas = this.exhaust.filter((id) => id === "shiv" || id === "shiv+");
+      const porDaga = this.danoDaga() + (fx.knivesTrap || 0);
+      for (const _ of dagas) { if (this.over) break; this.danoDirectoJefe(porDaga, "knife"); }
+      if (dagas.length > 0) this.onSonido("ataque");
+    }
+    // --- Robo y energía ---
+    if (fx.draw) this.robar(fx.draw);
+    if (fx.energy) { this.player.energy += fx.energy; this.onSonido("robo"); }
+    if (fx.predatorNext) this.nextDraw += fx.predatorNext;
+    if (fx.escapeCheck) {
+      const robadas = this.robar(1);
+      if (robadas.length > 0 && CARDS[robadas[robadas.length - 1]]?.type === "Habilidad") {
+        this.ganarBloqueo(fx.escapeCheck);
+      }
+    }
+    if (fx.calcGamble) {
+      const n = this.hand.length;
+      while (this.hand.length > 0) this._descartar(this.hand[0]);
+      this.robar(n);
+    }
+    if (fx.bulletTime) { this.sinRobo = true; this.manoGratis = true; }
+    // --- Invocaciones ---
+    if (fx.shivs) this.anadirDagas(fx.shivs);
+    // --- Descartes como coste ---
+    if (fx.discardN) this.iniciarDescarte(fx.discardN, cardId);
+    if (fx.discardHand) {
+      while (this.hand.length > 0) this._descartar(this.hand[0]);
+    }
+    if (fx.stormShivs) {
+      let n = 0;
+      while (this.hand.length > 0) { this._descartar(this.hand[0]); n++; }
+      this.anadirDagas(n);
+    }
+    if (fx.shadowDouble) this.doubleNext = true;
+    // --- Mejoras y banderas de turno ---
+    if (fx.dexTemp) { this.destrezaTurno += fx.dexTemp; this.onSonido("poder"); }
+    if (fx.dodgeNext) this.nextBlock += fx.dodgeNext;
+    if (fx.sidestepEnergy) this.nextEnergy += fx.sidestepEnergy;
+    if (fx.pounceFree) this.pounceFree = true;
+    if (fx.shadowmeld) this.dobleBloqueo = true;
+    if (fx.flanking) this.doubleNext = true;
+    if (fx.upEnergy) this.player.energy += fx.upEnergy;
+    if (fx.concoct) this.concoctN = fx.concoct;
+    if (fx.strangle) this.strangleN = fx.strangle;
+    if (fx.corrosive) this.corrosiveN = fx.corrosive;
+    if (fx.doubleSkill || fx.burstN) { this.doubleSkill += fx.doubleSkill || fx.burstN; this.onSonido("poder"); }
+    if (fx.blur) this.conservarBloqueo = true;
+    if (fx.expertiseRetain) this.retenerMano = true;
+    if (fx.malaiseX != null) {
+      const x = Math.max(0, this._ultimoX || 0) + fx.malaiseX;
+      this.boss.weak += x;
+      this.boss.vulnerable += x;
+    }
+    if (fx.nightmare) this.iniciarPesadilla();
+    // --- Poderes permanentes del combate ---
+    if (fx.power) {
+      const { id, n } = fx.power;
+      if (id === "footwork" || id === "abrasiveDex") this.destrezaPerm += n;
+      else if (id === "wraith") this.player.intangible += n;
+      else this.powers[id] = (this.powers[id] || 0) + n;
+      if (id === "phantom") this.powers.phantomUsado = false;
+      this.onSonido("poder");
+    }
+    if (fx.thorns) { this.espinas += fx.thorns; this.onSonido("poder"); }
+  }
+
+  danoDagaSiEs(card, base) {
+    if (card.id === "shiv" || card.id === "shiv+") return this.danoDaga();
+    return base;
+  }
+
+  // Descarta N cartas a elegir. La carta origen espera fuera y entra al
+  // resolverse, como hacía Superviviente.
+  iniciarDescarte(n, origenId) {
+    // Si había un origen anterior sin resolver (Ráfaga), se archiva
+    if (this.pendingDiscard?.origen) this.discard.push(this.pendingDiscard.origen);
+    if (this.hand.length === 0) {
+      if (origenId) {
+        this.discard.push(origenId);
+        this._origenYaDescartado = true;
+      }
+      return;
+    }
+    this.pendingDiscard = { restan: Math.min(n, this.hand.length), origen: origenId };
+    this.ultimaAccion = `${CARDS[origenId]?.name ?? "Carta"}: elige ${this.pendingDiscard.restan} para descartar`;
+  }
+
   descartarCarta(indiceMano) {
     if (!this.pendingDiscard) return;
     const cardId = this.hand[indiceMano];
-    this.hand.splice(indiceMano, 1);
-    this.discard.push(cardId);
-    this.discard.push("survivor");
-    this.pendingDiscard = false;
-    this.ultimaAccion = "Carta descartada";
+    if (cardId == null) return;
+    this._descartar(cardId);
+    this.pendingDiscard.restan--;
+    if (this.pendingDiscard.restan <= 0) {
+      if (this.pendingDiscard.origen) this.discard.push(this.pendingDiscard.origen);
+      this.pendingDiscard = null;
+      this.ultimaAccion = "Carta descartada";
+    } else {
+      this.ultimaAccion = `Elige ${this.pendingDiscard.restan} para descartar`;
+    }
     this.notify();
+  }
+
+  // Pesadilla: elige 1 carta de la mano; el próximo turno trae 3 copias
+  iniciarPesadilla() {
+    if (this.hand.length === 0) return;
+    this.pendingNightmare = true;
+    this.ultimaAccion = "Pesadilla: elige una carta de tu mano";
+  }
+
+  elegirPesadilla(indiceMano) {
+    if (!this.pendingNightmare) return;
+    const cardId = this.hand[indiceMano];
+    if (cardId == null) return;
+    this.pendingNightmare = cardId;
+    this.ultimaAccion = "La Pesadilla tomará forma el próximo turno";
+    this.notify();
+  }
+
+  // Mejora: sustituye 1 copia por su versión Plus
+  elegirMejora(cardId) {
+    if (!this.mejoraPendiente) return;
+    const zonas = [this.deck, this.hand, this.discard];
+    for (const zona of zonas) {
+      const i = zona.indexOf(cardId);
+      if (i >= 0) {
+        const card = CARDS[cardId];
+        if (!card || !esMejorable(cardId)) return;
+        zona[i] = card.plusId;
+        this.mejoraPendiente = false;
+        this.ultimaAccion = `${card.name} mejorada a ${CARDS[card.plusId].name}`;
+        this.onSonido("mejora");
+        this.notify();
+        return;
+      }
+    }
   }
 
   // ---------- Baraja completa ----------
@@ -200,6 +548,11 @@ export class Combat {
 
   // ---------- Daño ----------
   jefeRecibirDaño(cantidad, tipo = "slash") {
+    // Vulnerable: +50% (y otro +50% con Rastreo)
+    if (this.boss.vulnerable > 0) {
+      cantidad = Math.floor(cantidad * 1.5);
+      if (this.powers.tracking) cantidad = Math.floor(cantidad * 1.5);
+    }
     let restante = cantidad;
     if (this.boss.block > 0) {
       const absorbed = Math.min(this.boss.block, restante);
@@ -215,6 +568,10 @@ export class Combat {
   }
 
   jugadorRecibirDaño(cantidad, tipo = "slash") {
+    // Débil del jefe: sus ataques hacen 25% menos
+    if (this.boss.weak > 0) cantidad = Math.floor(cantidad * 0.75);
+    // Intangible: el daño recibido baja a 1
+    if (this.player.intangible > 0 && cantidad > 0) cantidad = 1;
     let restante = cantidad;
     if (this.player.block > 0) {
       const absorbed = Math.min(this.player.block, restante);
@@ -225,6 +582,11 @@ export class Combat {
       this.player.hp = Math.max(0, this.player.hp - restante);
       this.flashPlayer(tipo);
       this.onSonido("dano-jugador");
+    }
+    // Espinas: el atacante sufre daño al golpear
+    if (cantidad > 0 && this.espinas > 0 && !this.over) {
+      this.danoDirectoJefe(this.espinas, "thorns");
+      this.onLog(`Tus espinas devuelven ${this.espinas} de daño.`);
     }
     this.onLog(`El jefe te inflige ${cantidad} de daño.`);
   }
@@ -239,13 +601,32 @@ export class Combat {
 
   // ---------- Fin de turno ----------
   async finalizarTurno() {
-    if (this.over || this.busy || this.pendingDiscard) return;
+    if (this.over || this.busy || this.pendingDiscard || this.mejoraPendiente || this.pendingNightmare) return;
     this.busy = true;
     this.onSonido("fin-turno");
-    // Cartas de la mano van al descarte
-    this.discard.push(...this.hand);
-    this.hand = [];
+    // La mano se descarta, salvo Retener, Plan Perfecto o Pericia
+    const conservarToda = this.retenerMano || this.expertiseRetain || this.powers.welllaid;
+    for (const id of [...this.hand]) {
+      if (conservarToda || CARDS[id]?.fx?.retain) continue;
+      this._descartar(id);
+    }
     this.notify();
+
+    // Turno del jefe: el Veneno actúa antes de su intención
+    await this.esperar(400);
+    if ((this.boss.poison || 0) > 0) {
+      const ticks = (this.powers.accelerant || 0) + 1;
+      for (let t = 0; t < ticks && !this.over; t++) {
+        this.danoDirectoJefe(this.boss.poison, "poison");
+        this.onSonido("veneno");
+      }
+      this.boss.poison = Math.max(0, (this.boss.poison || 0) - 1);
+      this.notify();
+      if (this.boss.hp <= 0) {
+        this.busy = false;
+        return this.ganar();
+      }
+    }
 
     // Turno del jefe
     await this.esperar(400);
@@ -289,6 +670,7 @@ export class Combat {
 
   // Elige 1 de las 3 cartas de recompensa: entra en la baraja y, si quedan
   // pisos, se avanza al siguiente (vida persistente + 25% de cura).
+  // La Caza letal otorga una elección extra antes de avanzar.
   elegirRecompensa(cardId) {
     if (!this.over || this.boss.hp > 0) return;
     if (!this.recompensa || !this.recompensa.includes(cardId)) return;
@@ -296,6 +678,14 @@ export class Combat {
     this.recompensaElegida = cardId;
     this.recompensa = null;
     this.onSonido("recompensa");
+    if (this.recompensaBonus && !this.bonusUsado && this.piso < PISOS.length - 1) {
+      this.bonusUsado = true;
+      this.recompensaBonus = false;
+      this.recompensa = elegirRecompensas(3);
+      this.ultimaAccion = "¡La Caza otorga otra recompensa! Elige 1 más";
+      this.notify();
+      return;
+    }
     if (this.piso >= PISOS.length - 1) {
       this.victoriaTotal = true;
       this.ultimaAccion = `${CARDS[cardId].name} se une a tu baraja. ¡Torre conquistada!`;
@@ -321,6 +711,9 @@ export class Combat {
     this.busy = false;
     this.pendingDiscard = null;
     this.recompensa = null;
+    this.recompensaBonus = false;
+    this.bonusUsado = false;
+    this.mejoraPendiente = true;
     const cura = Math.floor(this.player.maxHp * 0.25);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + cura);
     this.player.block = 0;

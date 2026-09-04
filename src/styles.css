@@ -583,6 +583,69 @@ body::before {
 
 .btn-baraja:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ---------- Modal de mejora (elegir 1 + vista previa Plus) ---------- */
+.mejora-ayuda { color: #9aa4b2; font-size: 13.5px; padding: 8px 0; text-align: center; }
+
+.mejora-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px;
+  justify-content: center;
+}
+
+.mejora-opcion {
+  background: rgba(56, 139, 253, 0.1);
+  border: 1px solid rgba(56, 139, 253, 0.4);
+  color: var(--texto);
+  border-radius: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.mejora-opcion:hover { border-color: var(--dorado); transform: translateY(-1px); }
+.mejora-opcion.sel { border-color: var(--dorado); background: rgba(212, 175, 55, 0.15); }
+
+.mejora-nombre { font-weight: 700; font-size: 13.5px; }
+.mejora-tipo { font-size: 11.5px; color: #9aa4b2; }
+
+.mejora-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 0 2px;
+}
+
+.preview-col {
+  width: 150px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview-col h4 { font-size: 14px; }
+.preview-col img { width: 100%; border-radius: 8px; border: 2px solid var(--borde); }
+.preview-plus img { border-color: var(--dorado); box-shadow: 0 0 16px rgba(212, 175, 55, 0.35); }
+.preview-costo { font-weight: 800; color: #7cc4ff; }
+.preview-col p { font-size: 11.5px; color: #c9d1d9; line-height: 1.3; }
+.preview-flecha { font-size: 28px; color: var(--dorado); }
+
+.btn-confirmar-mejora:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.carta-elegible { cursor: pointer; }
+.carta-elegible:hover, .carta-elegible:focus-visible {
+  transform: translateY(-8px) scale(1.04);
+  border-color: var(--dorado);
+}
+
 /* ---------- Botón de sonido ---------- */
 .btn-sonido {
   background: rgba(22, 27, 34, 0.9);

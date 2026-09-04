@@ -37,7 +37,9 @@ const combat = new Combat({
   onSonido: (nombre) => sonidos.reproducir(nombre),
 });
 
-// Inicia el primer turno una vez que combat está inicializado
+// Inicia el primer turno una vez que combat está inicializado.
+// La mejora de piso 1 queda pendiente: la UI abre el modal con vista previa.
+combat.mejoraPendiente = true;
 combat.iniciarCombate();
 
 // ---------- Precarga de recursos con gestión de carga ----------

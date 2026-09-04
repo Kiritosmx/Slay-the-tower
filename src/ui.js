@@ -32,8 +32,9 @@ export class UI {
     this.root = root;
     this.combat = null;
     this.lastLogs = [];
-    this.modalAbierto = false; // Cualquier modal abierto (baraja / robo / descarte)
-    this.vistaModal = null; // null | "baraja" | "robo" | "descarte"
+    this.modalAbierto = false; // Cualquier modal abierto
+    this.vistaModal = null; // null | "baraja" | "robo" | "descarte" | "mejora" | "pesadilla"
+    this.mejoraSel = null; // Id base seleccionada en el modal de mejora
     this.cargador = null; // Cargador de imágenes resiliente (se inyecta)
     this.sonidos = null; // Módulo de sonidos sintetizados (se inyecta)
     // Estado del arrastre estilo Spire (arrastrar carta + flecha al objetivo)
@@ -189,6 +190,8 @@ export class UI {
       ${this.modalAbierto && this.vistaModal === "baraja" ? this.renderModalBaraja() : ""}
       ${this.modalAbierto && this.vistaModal === "robo" ? this.renderModalPila("robo") : ""}
       ${this.modalAbierto && this.vistaModal === "descarte" ? this.renderModalPila("descarte") : ""}
+      ${this.modalAbierto && this.vistaModal === "mejora" ? this.renderModalMejora() : ""}
+      ${this.modalAbierto && this.vistaModal === "pesadilla" ? this.renderModalPesadilla() : ""}
     `;
 
     // Eventos
@@ -223,6 +226,37 @@ export class UI {
       this._suena("clic");
       this.render();
     });
+    // Mejora y Pesadilla se abren solas al quedar pendientes
+    if (c.mejoraPendiente && !this.modalAbierto && !c.over) this.abrirModalMejora();
+    else if (c.pendingNightmare === true && !this.modalAbierto && !c.over) this.abrirModalPesadilla();
+    // Opciones y confirmación de mejora (con vista previa Plus)
+    this.root.querySelectorAll(".mejora-opcion[data-id]").forEach((el) => {
+      el.addEventListener("click", () => {
+        this.mejoraSel = el.dataset.id;
+        this._suena("clic");
+        this.render();
+        const modal = this.root.querySelector("#modal-mejora");
+        if (modal) modal.focus();
+      });
+    });
+    const btnMejora = this.root.querySelector("#btn-confirmar-mejora");
+    if (btnMejora) btnMejora.addEventListener("click", () => {
+      if (this.mejoraSel) {
+        c.elegirMejora(this.mejoraSel);
+        this.cerrarModal();
+      }
+    });
+    // Elección de Pesadilla
+    this.root.querySelectorAll(".carta-elegible[data-ipesadilla]").forEach((el) => {
+      const elegir = () => {
+        c.elegirPesadilla(Number(el.dataset.ipesadilla));
+        this.cerrarModal();
+      };
+      el.addEventListener("click", elegir);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); }
+      });
+    });
     if (this.modalAbierto) this.bindEventosModal();
   }
 
@@ -254,9 +288,116 @@ export class UI {
     if (modal) modal.focus();
   }
 
+  // ---------- Modal de mejora (elegir 1 + vista previa Plus) ----------
+  cartasMejorables() {
+    if (!this.combat) return [];
+    const vistas = new Set();
+    const lista = [];
+    for (const id of [...this.combat.deck, ...this.combat.hand, ...this.combat.discard]) {
+      const card = CARDS[id];
+      if (!card || card.plus || id === "shiv" || vistas.has(id)) continue;
+      if (!CARDS[card.plusId]) continue;
+      vistas.add(id);
+      lista.push(card);
+    }
+    return lista.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }
+
+  abrirModalMejora() {
+    if (!this.combat || !this.combat.mejoraPendiente) return;
+    if (this.cartasMejorables().length === 0) {
+      this.combat.mejoraPendiente = false;
+      this.render();
+      return;
+    }
+    this.mejoraSel = null;
+    this.modalAbierto = true;
+    this.vistaModal = "mejora";
+    this.render();
+    const modal = this.root.querySelector("#modal-mejora");
+    if (modal) modal.focus();
+  }
+
+  renderModalMejora() {
+    const opciones = this.cartasMejorables();
+    const sel = this.mejoraSel ? CARDS[this.mejoraSel] : null;
+    const plus = sel ? CARDS[sel.plusId] : null;
+    return `
+      <div class="modal-baraja" id="modal-mejora" role="dialog" aria-modal="true" aria-label="Mejora una carta de tu baraja" tabindex="-1">
+        <div class="modal-contenido">
+          <div class="modal-cabecera">
+            <h2>✨ Mejora 1 carta</h2>
+          </div>
+          <p class="mejora-ayuda">Elige una carta para reemplazarla por su versión Plus.</p>
+          <div class="mejora-lista">
+            ${opciones.map((card) => `
+              <button class="mejora-opcion ${this.mejoraSel === card.id ? "sel" : ""}" data-id="${card.id}">
+                <span class="mejora-nombre">${card.name}</span>
+                <span class="mejora-tipo">${card.type} · ⬢${card.cost}</span>
+              </button>`).join("")}
+          </div>
+          <div class="mejora-preview">
+            ${sel && plus ? `
+            <div class="preview-col">
+              <h4>${sel.name}</h4>
+              <img src="${imagenResiliente(this.cargador, sel.image)}" alt="${sel.name}" loading="lazy" decoding="async" />
+              <div class="preview-costo">⬢ ${sel.cost}</div>
+              <p>${sel.description}</p>
+            </div>
+            <div class="preview-flecha" aria-hidden="true">→</div>
+            <div class="preview-col preview-plus">
+              <h4>${plus.name}</h4>
+              <img src="${imagenResiliente(this.cargador, plus.image)}" alt="${plus.name}" loading="lazy" decoding="async" />
+              <div class="preview-costo">⬢ ${plus.cost}</div>
+              <p>${plus.description}</p>
+            </div>` : `<p class="mejora-ayuda">Selecciona una carta para ver su versión mejorada.</p>`}
+          </div>
+          <button class="btn-volver btn-confirmar-mejora" id="btn-confirmar-mejora" ${sel ? "" : "disabled"}>Mejorar${sel ? `: ${sel.name}` : ""}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Modal de Pesadilla (elegir carta de la mano) ----------
+  abrirModalPesadilla() {
+    if (!this.combat || this.combat.pendingNightmare !== true) return;
+    this.modalAbierto = true;
+    this.vistaModal = "pesadilla";
+    this.render();
+    const modal = this.root.querySelector("#modal-pesadilla");
+    if (modal) modal.focus();
+  }
+
+  renderModalPesadilla() {
+    return `
+      <div class="modal-baraja" id="modal-pesadilla" role="dialog" aria-modal="true" aria-label="Pesadilla: elige una carta de tu mano" tabindex="-1">
+        <div class="modal-contenido">
+          <div class="modal-cabecera">
+            <h2>🌙 Pesadilla: elige 1 carta</h2>
+          </div>
+          <p class="mejora-ayuda">El próximo turno añadirá 3 copias a tu mano.</p>
+          <div class="modal-cartas">
+            ${this.combat.hand.map((cardId, i) => {
+              const card = CARDS[cardId];
+              return `
+              <div class="carta carta-vista carta-elegible" data-ipesadilla="${i}" data-tipo="${card.type}" role="button" tabindex="0" aria-label="Elegir ${card.name}">
+                <div class="carta-costo">${card.cost}</div>
+                <div class="carta-nombre">${card.name}</div>
+                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+                <div class="carta-tipo">${card.type}</div>
+                <div class="carta-descripcion">${card.description}</div>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   cerrarModal() {
     this.modalAbierto = false;
     this.vistaModal = null;
+    this.mejoraSel = null;
     this.render();
     const btn = this.root.querySelector("#btn-baraja");
     if (btn) btn.focus();
@@ -274,7 +415,7 @@ export class UI {
   _alPulsarCarta(e) {
     if (e.button !== 0 && e.pointerType !== "touch") return;
     const el = e.target.closest(".carta[data-indice]");
-    if (!el || this.modalAbierto || !this.combat || this.combat.pendingDiscard || this.combat.over) return;
+    if (!el || this.modalAbierto || !this.combat || this.combat.pendingDiscard || this.combat.mejoraPendiente || this.combat.pendingNightmare || this.combat.over) return;
     this._posibleArrastre = { indice: Number(el.dataset.indice), x0: e.clientX, y0: e.clientY };
     if (typeof window !== "undefined") {
       window.addEventListener("pointermove", this._moverRef);
@@ -314,7 +455,7 @@ export class UI {
 
   iniciarArrastre(indice, x, y) {
     const c = this.combat;
-    if (!c || this.modalAbierto || c.pendingDiscard || c.over) return false;
+    if (!c || this.modalAbierto || c.pendingDiscard || c.mejoraPendiente || c.pendingNightmare || c.over) return false;
     if (!c.hand[indice]) return false;
     this.cancelarArrastre();
     this._limiteJuego = this.obtenerLimiteJuego();

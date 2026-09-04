@@ -38,7 +38,7 @@ describe("CP-01: Datos del juego íntegros", () => {
     for (const id of ["strike", "defend", "neutralize", "survivor"]) {
       expect(CARDS[id]).toBeDefined();
       expect(CARDS[id].name).toBeTruthy();
-      expect(CARDS[id].image).toMatch(/^https?:\/\//);
+      expect(CARDS[id].image).toMatch(/^(\/|https?:\/\/|data:)/);
     }
   });
 
@@ -672,14 +672,16 @@ describe("Recompensa de victoria: elige 1 de 3", () => {
     return combat;
   }
 
-  it("el pool trae 10 cartas reales de la Silenciosa con efectos del motor", () => {
-    expect(IDS_RECOMPENSA).toHaveLength(10);
+  it("el pool trae 85 cartas (sin Plus, básicas, ancestrales ni Daga)", () => {
+    expect(IDS_RECOMPENSA).toHaveLength(85);
     for (const id of IDS_RECOMPENSA) {
       const card = CARDS[id];
       expect(card.name).toBeTruthy();
       expect(["Ataque", "Habilidad"]).toContain(card.type);
-      expect(card.damage ?? card.block).toBeGreaterThan(0);
+      expect(card.plus).not.toBe(true);
+      expect(CARDS[card.plusId]).toBeDefined();
     }
+    expect(IDS_RECOMPENSA).not.toContain("shiv");
     expect(elegirRecompensas(3)).toHaveLength(3);
     expect(new Set(elegirRecompensas(3)).size).toBe(3);
   });
@@ -780,11 +782,11 @@ describe("Arrastre estilo Spire: carta + flecha", () => {
 
   it("el clic sigue descartando en modo Superviviente", () => {
     combat.hand = ["strike", "defend"];
-    combat.pendingDiscard = true;
+    combat.iniciarDescarte(1, "survivor");
     ui.setCombat(combat);
     contenedor.querySelector(".carta[data-indice]").click();
     expect(combat.hand).toHaveLength(1);
-    expect(combat.pendingDiscard).toBe(false);
+    expect(combat.pendingDiscard).toBeNull();
   });
 
   it("arrastrar y soltar arriba juega la carta", () => {
@@ -1002,6 +1004,295 @@ describe("Sonidos sintetizados", () => {
     contenedor.querySelector("#btn-sonido").click();
     expect(s.silenciado).toBe(true);
     expect(contenedor.querySelector("#btn-sonido").textContent).toContain("🔇");
+    contenedor.remove();
+  });
+});
+
+describe("Motor extendido: las 91 cartas", () => {
+  function combateLimpio() {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand = [];
+    combat.deck = [];
+    combat.discard = [];
+    combat.player.energy = 10;
+    combat.player.maxEnergy = 10;
+    return combat;
+  }
+
+  function darMano(combat, ids) {
+    combat.hand = [...ids];
+    combat.player.energy = 10;
+  }
+
+  it("catalogo completo: 92 base, Plus registradas e imagenes locales", () => {
+    expect(Object.keys(CARDS).length).toBeGreaterThanOrEqual(183);
+    for (const id of IDS_RECOMPENSA) {
+      expect(CARDS[id + "+"].plus).toBe(true);
+      expect(CARDS[id + "+"].image).toContain("Plus.png");
+      expect(CARDS[id].image.startsWith("/cartas/")).toBe(true);
+    }
+    expect(CARDS["shiv"].image.startsWith("data:")).toBe(true);
+  });
+
+  it("veneno: se aplica y resta al turno del jefe", async () => {
+    const combat = combateLimpio();
+    darMano(combat, ["deadlypoison"]);
+    combat.jugarCarta(0);
+    expect(combat.boss.poison).toBe(5);
+    const hpAntes = combat.boss.hp;
+    combat.player.hp = 72;
+    combat.player.block = 50;
+    combat.boss.intent = INTENCIONES_JEFE.find((i) => i.id === "debilitar");
+    combat.finalizarTurno();
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(combat.boss.poison).toBe(4);
+    expect(combat.boss.hp).toBeLessThan(hpAntes);
+  });
+
+  it("dagas: se anaden, hacen 4 y se agotan (Precision las potencia)", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["bladedance"]);
+    combat.jugarCarta(0);
+    expect(combat.hand.filter((id) => id === "shiv")).toHaveLength(3);
+    expect(combat.exhaust).toContain("bladedance");
+    const hp = combat.boss.hp;
+    combat.jugarCarta(combat.hand.indexOf("shiv"));
+    expect(combat.boss.hp).toBe(hp - 4);
+    expect(combat.exhaust).toContain("shiv");
+    combat.powers.accuracy = 4;
+    darMano(combat, ["shiv"]);
+    const hp2 = combat.boss.hp;
+    combat.jugarCarta(0);
+    expect(combat.boss.hp).toBe(hp2 - 8);
+  });
+
+  it("robo y energia: Voltereta roba, Adrenalina da energia y se agota", () => {
+    const combat = combateLimpio();
+    combat.deck = ["strike", "strike", "strike"];
+    darMano(combat, ["backflip"]);
+    combat.jugarCarta(0);
+    expect(combat.hand).toHaveLength(2);
+    darMano(combat, ["adrenaline"]);
+    combat.player.energy = 1;
+    combat.jugarCarta(0);
+    expect(combat.player.energy).toBe(3);
+    expect(combat.exhaust).toContain("adrenaline");
+  });
+
+  it("conservar e innata: Mordedura se queda, Punada Trapera abre", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["snakebite", "strike"]);
+    combat.player.hp = 72;
+    combat.player.block = 50;
+    combat.boss.intent = INTENCIONES_JEFE.find((i) => i.id === "debilitar");
+    combat.finalizarTurno();
+    return new Promise((r) => setTimeout(r, 1200)).then(() => {
+      expect(combat.hand).toContain("snakebite");
+      const c2 = new Combat({ onStateChange: () => {}, onGameOver: () => {}, onVictory: () => {}, onLog: () => {} });
+      c2.deck.push("backstab");
+      c2.iniciarCombate();
+      expect(c2.hand).toContain("backstab");
+    });
+  });
+
+  it("escurridiza: al descartar se juega gratis", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["untouchable", "strike"]);
+    combat._descartar("untouchable");
+    expect(combat.player.block).toBe(6);
+    expect(combat.discard).toContain("untouchable");
+  });
+
+  it("destreza y vulnerable: Anticipacion potencia, Vulnerable x1.5", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["anticipate", "defend"]);
+    combat.jugarCarta(0);
+    combat.jugarCarta(0);
+    expect(combat.player.block).toBe(7);
+    const c2 = combateLimpio();
+    c2.boss.vulnerable = 1;
+    darMano(c2, ["strike"]);
+    const hp = c2.boss.hp;
+    c2.jugarCarta(0);
+    expect(c2.boss.hp).toBe(hp - 9);
+  });
+
+  it("costes especiales: Ensartar X, Gran Final condicionado, Punto de Mira", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["skewer"]);
+    combat.player.energy = 3;
+    const hp = combat.boss.hp;
+    combat.jugarCarta(0);
+    expect(combat.boss.hp).toBe(hp - 24);
+    expect(combat.player.energy).toBe(0);
+    const c2 = combateLimpio();
+    c2.deck = ["strike"];
+    darMano(c2, ["grandfinale"]);
+    expect(c2.puedeJugar("grandfinale")).toBe(false);
+    c2.deck = [];
+    expect(c2.puedeJugar("grandfinale")).toBe(true);
+    const c3 = combateLimpio();
+    darMano(c3, ["pinpoint"]);
+    c3.habilidadesTurno = 2;
+    expect(c3.costeEfectivo(CARDS["pinpoint"])).toBe(1);
+  });
+
+  it("rafaga duplica la proxima Habilidad", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["burst", "defend"]);
+    combat.jugarCarta(0);
+    combat.jugarCarta(0);
+    expect(combat.player.block).toBe(10);
+  });
+
+  it("escalados: Remate, Dardos, Memento, Homicidio y Corte Preciso", () => {
+    const combat = combateLimpio();
+    combat.ataquesTurno = 2;
+    darMano(combat, ["finisher"]);
+    const hp = combat.boss.hp;
+    combat.jugarCarta(0);
+    expect(combat.boss.hp).toBe(hp - 12);
+    const c2 = combateLimpio();
+    darMano(c2, ["flechettes", "defend", "defend"]);
+    const hp2 = c2.boss.hp;
+    c2.jugarCarta(0);
+    expect(c2.boss.hp).toBe(hp2 - 10);
+    const c3 = combateLimpio();
+    c3.descartadasTurno = 3;
+    darMano(c3, ["mementomori"]);
+    const hp3 = c3.boss.hp;
+    c3.jugarCarta(0);
+    expect(c3.boss.hp).toBe(hp3 - 21);
+    const c4 = combateLimpio();
+    c4.robadasCombate = 5;
+    darMano(c4, ["murder"]);
+    const hp4 = c4.boss.hp;
+    c4.jugarCarta(0);
+    expect(c4.boss.hp).toBe(hp4 - 6);
+    const c5 = combateLimpio();
+    darMano(c5, ["precisecut", "strike", "strike"]);
+    const hp5 = c5.boss.hp;
+    c5.jugarCarta(0);
+    expect(c5.boss.hp).toBe(hp5 - 9);
+  });
+
+  it("espinas devuelven dano al atacante", () => {
+    const combat = combateLimpio();
+    combat.espinas = 5;
+    const hp = combat.boss.hp;
+    combat.jugadorRecibirDaño(10);
+    expect(combat.boss.hp).toBe(hp - 5);
+  });
+
+  it("intangible limita el dano a 1", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["wraithform"]);
+    combat.jugarCarta(0);
+    expect(combat.player.intangible).toBe(2);
+    combat.player.block = 0;
+    combat.jugadorRecibirDaño(15);
+    expect(combat.player.hp).toBe(combat.player.maxHp - 1);
+  });
+
+  it("tiempo Bala deja la mano gratis y sin robo", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["bullettime", "predator"]);
+    combat.player.energy = 3;
+    combat.jugarCarta(0);
+    expect(combat.manoGratis).toBe(true);
+    expect(combat.puedeJugar("predator")).toBe(true);
+    combat.jugarCarta(0);
+    expect(combat.player.energy).toBe(0);
+  });
+
+  it("brote aplica y activa el veneno al instante", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["outbreak"]);
+    const hp = combat.boss.hp;
+    combat.jugarCarta(0);
+    expect(combat.boss.hp).toBe(hp - 9);
+    expect(combat.boss.poison).toBe(8);
+  });
+
+  it("mejora: sustituye 1 copia por su Plus", () => {
+    const combat = combateLimpio();
+    combat.deck = ["strike", "defend"];
+    combat.mejoraPendiente = true;
+    combat.elegirMejora("strike");
+    expect(combat.deck).toContain("strike+");
+    expect(combat.deck).not.toContain("strike");
+    expect(combat.mejoraPendiente).toBe(false);
+    expect(CARDS["strike+"].damage).toBe(9);
+    combat.mejoraPendiente = true;
+    combat.elegirMejora("inexistente");
+    expect(combat.mejoraPendiente).toBe(true);
+  });
+
+  it("pesadilla: elige y trae 3 copias el proximo turno", () => {
+    const combat = combateLimpio();
+    darMano(combat, ["nightmare", "strike"]);
+    combat.jugarCarta(0);
+    expect(combat.pendingNightmare).toBe(true);
+    combat.elegirPesadilla(0);
+    expect(combat.pendingNightmare).toBe("strike");
+    combat.deck = [];
+    combat.discard = [];
+    combat.turnoJugador();
+    expect(combat.hand.filter((id) => id === "strike").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("plan perfecto conserva la mano al cerrar el turno", () => {
+    const combat = combateLimpio();
+    combat.player.hp = 72;
+    combat.player.block = 50;
+    combat.boss.intent = INTENCIONES_JEFE.find((i) => i.id === "debilitar");
+    darMano(combat, ["welllaidplans", "strike"]);
+    combat.jugarCarta(0);
+    combat.finalizarTurno();
+    return new Promise((r) => setTimeout(r, 1200)).then(() => {
+      expect(combat.hand).toContain("strike");
+    });
+  });
+
+  it("la Caza letal otorga eleccion extra", () => {
+    const combat = combateLimpio();
+    combat.boss.hp = 5;
+    darMano(combat, ["thehunt"]);
+    combat.jugarCarta(0);
+    expect(combat.recompensaBonus).toBe(true);
+    const primera = combat.recompensa[0];
+    combat.elegirRecompensa(primera);
+    expect(combat.recompensa).toHaveLength(3);
+    expect(combat.piso).toBe(0);
+    combat.elegirRecompensa(combat.recompensa[0]);
+    expect(combat.piso).toBe(1);
+  });
+
+  it("UI de mejora: lista, previa Plus y confirmacion", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = combateLimpio();
+    combat.deck = ["strike", "defend"];
+    combat.mejoraPendiente = true;
+    const ui = new UI(contenedor);
+    ui.setSonidos(new Sonidos());
+    ui.setCombat(combat);
+    expect(contenedor.querySelector("#modal-mejora")).toBeTruthy();
+    expect(contenedor.querySelectorAll(".mejora-opcion").length).toBe(2);
+    contenedor.querySelector(".mejora-opcion").click();
+    expect(contenedor.querySelector(".preview-plus").textContent).toContain("+");
+    expect(contenedor.querySelector("#btn-confirmar-mejora").disabled).toBe(false);
+    contenedor.querySelector("#btn-confirmar-mejora").click();
+    expect(combat.mejoraPendiente).toBe(false);
+    expect(contenedor.querySelector("#modal-mejora")).toBeNull();
     contenedor.remove();
   });
 });

@@ -1,5 +1,10 @@
-// Datos de cartas basados en Slay the Spire 2 (La Silenciosa)
-const IMG = "https://coresg-normal.trae.ai/api/ide/v1/text_to_image";
+// Datos de cartas: las 91 de la Silenciosa (Slay the Spire 2, vía wiki)
+// Catálogos en cartas_basicas.js (básicas + comunes) y cartas_avanzadas.js
+// (infrecuentes + raras + ancestrales + Daga). Aquí se registran en CARDS
+// en versión base y Plus ("id+"), con espejos legacy (damage/block/weak/
+// discard/cost) para compatibilidad con el motor clásico.
+import { CATALOGO_I } from "./cartas_basicas.js";
+import { CATALOGO_II } from "./cartas_avanzadas.js";
 
 // ---------- Tipos de carta (vista de baraja completa) ----------
 // Agrupación fiel al juego: Ataque ⚔, Habilidad 🛡, Poder ✦
@@ -11,46 +16,49 @@ export const INFO_TIPOS = {
   Poder:     { icono: "✦", nombre: "Poder",     color: "#b083f0" },
 };
 
-export const CARDS = {
-  strike: {
-    id: "strike",
-    name: "Golpe",
-    type: "Ataque",
-    cost: 1,
-    damage: 6,
-    description: "Inflige 6 de daño.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy playing card art, a swift dagger strike with green poison mist, dark assassin theme, dark green and teal palette, vertical composition, stylized game illustration, no text") + "&image_size=portrait_4_3",
-  },
-  defend: {
-    id: "defend",
-    name: "Defensa",
-    type: "Habilidad",
-    cost: 1,
-    block: 5,
-    description: "Gana 5 de Bloqueo.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy playing card art, a glowing magical shield barrier with arcane runes, teal and green energy, dark background, stylized game illustration, vertical composition, no text") + "&image_size=portrait_4_3",
-  },
-  neutralize: {
-    id: "neutralize",
-    name: "Neutralizar",
-    type: "Ataque",
-    cost: 0,
-    damage: 3,
-    weak: 1,
-    description: "Inflige 3 de daño. Aplica 1 de Débil.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy playing card art, a hooded assassin striking with dual daggers, purple poison smoke swirl, dark moody atmosphere, stylized game illustration, vertical composition, no text") + "&image_size=portrait_4_3",
-  },
-  survivor: {
-    id: "survivor",
-    name: "Superviviente",
-    type: "Habilidad",
-    cost: 1,
-    block: 8,
-    discard: 1,
-    description: "Gana 8 de Bloqueo. Descarta 1 carta.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy playing card art, a cloaked figure evading away in smoke and shadows, green scarf trailing, dark fantasy, stylized game illustration, vertical composition, no text") + "&image_size=portrait_4_3",
-  },
-};
+// Daga: ficha sin arte oficial (las Dagas son fichas, no recompensas)
+const IMAGEN_DAGA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="86" viewBox="0 0 150 86">` +
+  `<rect width="150" height="86" fill="#1b2027"/>` +
+  `<text x="75" y="58" text-anchor="middle" font-size="44">🗡️</text></svg>`
+);
+
+function imagenCarta(img, plus) {
+  if (!img) return IMAGEN_DAGA;
+  return `/cartas/${img}${plus ? "Plus" : ""}.png`;
+}
+
+function registrar(def, version) {
+  const v = version === "+" ? def.plus : def.base;
+  const id = version === "+" ? def.id + "+" : def.id;
+  const nombre = version === "+" ? def.name + "+" : def.name;
+  return {
+    id,
+    name: nombre,
+    type: def.type,
+    rarity: def.rarity,
+    cost: v.cost,
+    description: v.text,
+    image: imagenCarta(def.img, version === "+"),
+    fx: v.fx,
+    // Espejos legacy para el motor clásico
+    damage: v.fx.dmg,
+    block: v.fx.block,
+    weak: v.fx.weak,
+    discard: v.fx.discardN,
+    plus: version === "+",
+    baseId: version === "+" ? def.id : null,
+    plusId: version === "+" ? null : def.id + "+",
+  };
+}
+
+export const CATALOGO = [...CATALOGO_I, ...CATALOGO_II];
+
+export const CARDS = {};
+for (const def of CATALOGO) {
+  CARDS[def.id] = registrar(def, "");
+  CARDS[def.id + "+"] = registrar(def, "+");
+}
 
 // Baraja inicial: 5 Golpe + 5 Defensa + 1 Neutralizar + 1 Superviviente
 export function crearBarajaInicial() {
@@ -62,111 +70,11 @@ export function crearBarajaInicial() {
   ];
 }
 
-// ---------- RECOMPENSAS DE VICTORIA ----------
-// Cartas reales de la Silenciosa (Slay the Spire, vía wiki) con efectos
-// adaptados al motor (daño / Bloqueo / Débil). Al vencer se ofrecen 3
-// aleatorias y solo se puede elegir 1 para la baraja.
-export const CARTAS_RECOMPENSA = {
-  flyingknee: {
-    id: "flyingknee",
-    name: "Rodilla Voladora",
-    type: "Ataque",
-    cost: 1,
-    damage: 8,
-    description: "Inflige 8 de daño.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, assassin knee strike in mid-air, green cloak motion, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  daggerspray: {
-    id: "daggerspray",
-    name: "Lluvia de Dagas",
-    type: "Ataque",
-    cost: 1,
-    damage: 7,
-    description: "Inflige 7 de daño.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, fan of thrown daggers with green trails, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  bladedance: {
-    id: "bladedance",
-    name: "Danza de Cuchillas",
-    type: "Ataque",
-    cost: 1,
-    damage: 9,
-    description: "Inflige 9 de daño.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, whirling dance of spectral blades around a hooded figure, teal sparks, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  predator: {
-    id: "predator",
-    name: "Depredador",
-    type: "Ataque",
-    cost: 2,
-    damage: 12,
-    description: "Inflige 12 de daño.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, predator eyes in darkness lunging with fangs and daggers, green mist, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  poisonstab: {
-    id: "poisonstab",
-    name: "Puñalada Tóxica",
-    type: "Ataque",
-    cost: 1,
-    damage: 5,
-    weak: 2,
-    description: "Inflige 5 de daño. Aplica 2 de Débil.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, dagger dripping purple poison striking forward, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  suckerpunch: {
-    id: "suckerpunch",
-    name: "Golpe Bajo",
-    type: "Ataque",
-    cost: 1,
-    damage: 7,
-    weak: 1,
-    description: "Inflige 7 de daño. Aplica 1 de Débil.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, dirty underhand punch with brass knuckles in a tavern brawl, dark moody, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  legsweep: {
-    id: "legsweep",
-    name: "Barrido",
-    type: "Ataque",
-    cost: 2,
-    damage: 11,
-    weak: 2,
-    description: "Inflige 11 de daño. Aplica 2 de Débil.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, sweeping leg kick tripping an armored foe, dust and motion, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  backflip: {
-    id: "backflip",
-    name: "Voltereta",
-    type: "Habilidad",
-    cost: 1,
-    block: 7,
-    description: "Gana 7 de Bloqueo.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, acrobat doing a backflip over a sword swing, green scarf flowing, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  cloakdagger: {
-    id: "cloakdagger",
-    name: "Capa y Daga",
-    type: "Habilidad",
-    cost: 1,
-    block: 6,
-    description: "Gana 6 de Bloqueo.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, cloak unfurling like wings hiding a drawn dagger, teal glow, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-  piercingwail: {
-    id: "piercingwail",
-    name: "Lamento Perforante",
-    type: "Habilidad",
-    cost: 1,
-    block: 4,
-    weak: 1,
-    description: "Gana 4 de Bloqueo. Aplica 1 de Débil.",
-    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, banshee scream shattering air with visible sound waves, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
-  },
-};
-
-// Todas las cartas jugables (base + recompensas) en un solo mapa
-for (const [id, card] of Object.entries(CARTAS_RECOMPENSA)) CARDS[id] = card;
-
-export const IDS_RECOMPENSA = Object.keys(CARTAS_RECOMPENSA);
+// Pool de recompensas: comunes + infrecuentes + raras (sin Plus,
+// sin básicas, sin ancestrales y sin fichas como la Daga)
+export const IDS_RECOMPENSA = CATALOGO.filter(
+  (d) => d.id !== "shiv" && (d.rarity === "Común" || d.rarity === "Infrecuente" || d.rarity === "Rara")
+).map((d) => d.id);
 
 // 3 opciones distintas al azar para la recompensa de victoria
 export function elegirRecompensas(n = 3) {
@@ -178,6 +86,11 @@ export function elegirRecompensas(n = 3) {
   return pool.slice(0, n);
 }
 
+// Cartas mejorables: toda la colección salvo versiones Plus y la Daga
+export function esMejorable(id) {
+  const card = CARDS[id];
+  return Boolean(card && !card.plus && id !== "shiv" && CARDS[card.plusId]);
+}
 // ---------- JUGADOR ----------
 export const PLAYER = {
   name: "La Silenciosa",
