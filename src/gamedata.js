@@ -218,7 +218,7 @@ export const INTENCIONES_JEFE = [
   {
     id: "debilitar",
     icon: "🕸",
-    detail: () => "Aplica 1 de Débil. Tus ataques infligen 25% menos de daño.",
+    detail: (intent) => `Aplica ${intent.valor} de Débil. Tus ataques infligen 25% menos de daño.`,
     valor: 1,
     ejecutar(combat) {
       combat.player.weak = (combat.player.weak || 0) + this.valor;
@@ -250,4 +250,69 @@ export function elegirIntencionJefe(ultimaIntencionId) {
   const pool = INTENCIONES_JEFE.filter((i) => i.id !== ultimaIntencionId);
   const pick = pool[Math.floor(Math.random() * pool.length)];
   return pick;
+}
+
+// ---------- PISOS DE LA TORRE ----------
+// 5 pisos con dificultad creciente. image_0/image_2 tienen transparencia
+// real; image_1/image_3 traen escena pintada (la UI les funde los bordes).
+// `intenciones` sobrescribe el daño de cada patrón en ese piso.
+export const PISOS = [
+  {
+    id: "golem-cuerda",
+    nombre: "Gólem de Cuerda",
+    image: "/enemigo_0.png",
+    maxHp: 60,
+    escena: false,
+    intenciones: { atacar: 7, aplastar: 11, debilitar: 1, romperEscudo: 5, drenar: 4 },
+  },
+  {
+    id: "caballero-dorado",
+    nombre: "Caballero Dorado",
+    image: "/enemigo_1.png",
+    maxHp: 80,
+    escena: true,
+    intenciones: { atacar: 8, aplastar: 13, debilitar: 1, romperEscudo: 5, drenar: 5 },
+  },
+  {
+    id: "ent-sombrio",
+    nombre: "Ent Sombrío",
+    image: "/enemigo_2.png",
+    maxHp: 100,
+    escena: false,
+    intenciones: { atacar: 9, aplastar: 14, debilitar: 1, romperEscudo: 6, drenar: 5 },
+  },
+  {
+    id: "coloso-cenagal",
+    nombre: "Coloso del Cenagal",
+    image: "/enemigo_3.png",
+    maxHp: 110,
+    escena: true,
+    intenciones: { atacar: 10, aplastar: 15, debilitar: 2, romperEscudo: 6, drenar: 6 },
+  },
+  {
+    id: "centinela",
+    nombre: BOSS.name,
+    image: BOSS.image,
+    maxHp: BOSS.maxHp,
+    escena: false,
+    intenciones: { atacar: 10, aplastar: 16, debilitar: 1, romperEscudo: 6, drenar: 6 },
+  },
+];
+
+// Estado inicial del jefe para un piso dado
+export function crearJefeDePiso(piso) {
+  const P = PISOS[piso] ?? PISOS[0];
+  return {
+    piso,
+    name: P.nombre,
+    image: P.image,
+    escena: P.escena,
+    hp: P.maxHp,
+    maxHp: P.maxHp,
+    block: 0,
+    weak: 0,
+    vulnerable: 0,
+    intent: null,
+    lastIntentId: null,
+  };
 }

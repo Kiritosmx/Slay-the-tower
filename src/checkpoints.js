@@ -11,7 +11,7 @@
 //   - Expuesto en consola del navegador: window.__CHECKPOINTS__
 // ============================================================
 
-import { CARDS, BOSS, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "./gamedata.js";
+import { CARDS, BOSS, PISOS, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "./gamedata.js";
 import { Combat } from "./combat.js";
 import { UI } from "./ui.js";
 import {
@@ -331,7 +331,7 @@ export const CHECKPOINTS = [
       comprobaciones.push(
         comprobacion("render produce HTML", html.length > 500, `${html.length} caracteres`),
         comprobacion("muestra intención del jefe", html.includes("intencion-icono"), ""),
-        comprobacion("muestra nombre del jefe", html.includes(BOSS.name), ""),
+        comprobacion("muestra nombre del jefe", html.includes(combat.boss.name), combat.boss.name),
         comprobacion("muestra energía del jugador", html.includes("Energía"), ""),
         comprobacion("botón de fin de turno presente", Boolean(contenedor.querySelector(".btn-fin-turno")), ""),
         comprobacion("cartas de la mano renderizadas", contenedor.querySelectorAll(".carta").length === 5, `${contenedor.querySelectorAll(".carta").length} cartas`),
@@ -460,16 +460,16 @@ export const CHECKPOINTS = [
       const comprobaciones = [];
       // El cargador global se comparte con la UI; si no existe aún (pruebas), se instancia
       const cargador = globalThis.__CARGADOR_RECURSOS__ ?? new CargadorImagenesResiliente();
-      const urls = [CARDS.strike.image, CARDS.defend.image, CARDS.neutralize.image, CARDS.survivor.image, BOSS.image];
+      const urls = [CARDS.strike.image, CARDS.defend.image, CARDS.neutralize.image, CARDS.survivor.image, ...PISOS.map((p) => p.image)];
       await cargador.precargar(urls);
 
-      const origenes = [...cargador.resultados.values()];
+      const origenes = urls.map((u) => cargador.resultados.get(u)).filter(Boolean);
       const conFallback = origenes.filter((r) => r.origen === "fallback").length;
       comprobaciones.push(
-        comprobacion("5 recursos críticos resueltos", origenes.length === 5, `${origenes.length} resueltos`),
+        comprobacion(`${urls.length} recursos críticos resueltos`, origenes.length === urls.length, `${origenes.length} resueltos`),
         comprobacion(
           "juego jugable aunque las imágenes caigan a fallback",
-          origenes.length === 5 && origenes.every((r) => r.url),
+          origenes.length === urls.length && origenes.every((r) => r.url),
           conFallback === 0 ? "todas remotas/cache" : `${conFallback} en fallback (jugable)`
         )
       );

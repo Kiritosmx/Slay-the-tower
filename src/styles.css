@@ -583,6 +583,26 @@ body::before {
 
 .btn-baraja:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ---------- Botón de sonido ---------- */
+.btn-sonido {
+  background: rgba(22, 27, 34, 0.9);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font-size: 17px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.btn-sonido:hover { border-color: var(--dorado); transform: translateY(-1px); }
+
+/* Enemigos con escena pintada: se funden los bordes con la cueva */
+.sprite-jefe.fondo-escena {
+  border-radius: 18px;
+  -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 62%, transparent 82%);
+  mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 62%, transparent 82%);
+}
+
 /* ---------- Modal: baraja completa / pilas ---------- */
 .modal-baraja {
   position: fixed;

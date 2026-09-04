@@ -2,7 +2,7 @@
 // Layout según entorno1: jugador a la izquierda, jefe a la derecha,
 // barras de vida bajo cada sprite, intención sobre el jefe y barra
 // inferior con orbe de energía + pila de robo + mano + fin de turno + descarte.
-import { CARDS, BOSS, PLAYER, INFO_TIPOS } from "./gamedata.js";
+import { CARDS, PLAYER, PISOS, INFO_TIPOS } from "./gamedata.js";
 
 // Resolución resiliente de imágenes: si el proveedor cae (503/cache_only_cold)
 // se usa el fallback local en lugar de la URL remota. Resolución perezosa:
@@ -35,6 +35,7 @@ export class UI {
     this.modalAbierto = false; // Cualquier modal abierto (baraja / robo / descarte)
     this.vistaModal = null; // null | "baraja" | "robo" | "descarte"
     this.cargador = null; // Cargador de imágenes resiliente (se inyecta)
+    this.sonidos = null; // Módulo de sonidos sintetizados (se inyecta)
     // Estado del arrastre estilo Spire (arrastrar carta + flecha al objetivo)
     this.arrastre = null;
     this._posibleArrastre = null;
@@ -59,6 +60,18 @@ export class UI {
     this.cargador = cargador;
   }
 
+  setSonidos(sonidos) {
+    this.sonidos = sonidos;
+  }
+
+  _suena(nombre) {
+    try {
+      this.sonidos?.reproducir(nombre);
+    } catch {
+      /* el sonido nunca rompe el juego */
+    }
+  }
+
   setCombat(combat) {
     this.combat = combat;
     this.render();
@@ -77,11 +90,14 @@ export class UI {
             <span class="ficha-hp">❤ ${c.player.hp}/${c.player.maxHp}</span>
           </div>
           <div class="piso-turno">
-            <span class="piso">Piso 1</span>
+            <span class="piso">Piso ${c.piso + 1}/${PISOS.length}</span>
             <span class="turno">Turno ${c.turn}</span>
           </div>
           <div class="botones-accion">
             <span class="accion">${c.ultimaAccion || ""}</span>
+            <button class="btn-sonido" id="btn-sonido" title="Activar/silenciar sonidos" aria-label="Activar o silenciar sonidos">
+              ${this.sonidos && this.sonidos.silenciado ? "🔇" : "🔊"}
+            </button>
             <button class="btn-baraja" id="btn-baraja" ${c.busy ? "disabled" : ""} title="Ver todas mis cartas">
               📖 Ver todas mis cartas
             </button>
@@ -108,9 +124,9 @@ export class UI {
               <span class="intencion-texto">${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}</span>
             </div>
             <div class="entidad jefe" data-entidad="jefe">
-              <img class="sprite sprite-jefe" src="${imagenResiliente(this.cargador, BOSS.image)}" alt="${BOSS.name}" />
+              <img class="sprite sprite-jefe${c.boss.escena ? " fondo-escena" : ""}" src="${imagenResiliente(this.cargador, c.boss.image)}" alt="${c.boss.name}" />
               <div class="entidad-info">
-                <div class="entidad-nombre">${BOSS.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}</div>
+                <div class="entidad-nombre">${c.boss.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}</div>
                 ${barraVida(c.boss, true)}
               </div>
             </div>
@@ -196,11 +212,17 @@ export class UI {
     const btn = this.root.querySelector("#btn-fin-turno");
     if (btn) btn.addEventListener("click", () => c.finalizarTurno());
     const btnBaraja = this.root.querySelector("#btn-baraja");
-    if (btnBaraja) btnBaraja.addEventListener("click", () => this.abrirModalBaraja());
+    if (btnBaraja) btnBaraja.addEventListener("click", () => { this._suena("abrir"); this.abrirModalBaraja(); });
     const btnRobo = this.root.querySelector("#btn-robo");
-    if (btnRobo) btnRobo.addEventListener("click", () => this.abrirModalRobo());
+    if (btnRobo) btnRobo.addEventListener("click", () => { this._suena("abrir"); this.abrirModalRobo(); });
     const btnDescarte = this.root.querySelector("#btn-descarte");
-    if (btnDescarte) btnDescarte.addEventListener("click", () => this.abrirModalDescarte());
+    if (btnDescarte) btnDescarte.addEventListener("click", () => { this._suena("abrir"); this.abrirModalDescarte(); });
+    const btnSonido = this.root.querySelector("#btn-sonido");
+    if (btnSonido) btnSonido.addEventListener("click", () => {
+      this.sonidos?.alternar();
+      this._suena("clic");
+      this.render();
+    });
     if (this.modalAbierto) this.bindEventosModal();
   }
 
@@ -480,6 +502,9 @@ export class UI {
       </div>`;
     }
     const ganada = c.recompensaElegida ? CARDS[c.recompensaElegida] : null;
+    if (c.victoriaTotal) {
+      return `<div class="overlay-fin"><div class="mensaje-fin">¡TORRE CONQUISTADA!${ganada ? `<span class="recompensa-ganada">🃏 ${ganada.name} se une a tu baraja</span>` : ""}<button onclick="location.reload()">Jugar de nuevo</button></div></div>`;
+    }
     return `<div class="overlay-fin"><div class="mensaje-fin">¡VICTORIA!${ganada ? `<span class="recompensa-ganada">🃏 ${ganada.name} se une a tu baraja</span>` : ""}<button onclick="location.reload()">Reintentar</button></div></div>`;
   }
 
@@ -571,8 +596,8 @@ export class UI {
     const modal = this.root.querySelector("#modal-baraja, #modal-robo, #modal-descarte");
     const btnCerrar = this.root.querySelector("#btn-cerrar-modal");
     const btnVolver = this.root.querySelector("#btn-volver");
-    if (btnCerrar) btnCerrar.addEventListener("click", () => this.cerrarModal());
-    if (btnVolver) btnVolver.addEventListener("click", () => this.cerrarModal());
+    if (btnCerrar) btnCerrar.addEventListener("click", () => { this._suena("cerrar"); this.cerrarModal(); });
+    if (btnVolver) btnVolver.addEventListener("click", () => { this._suena("cerrar"); this.cerrarModal(); });
     if (modal) {
       modal.addEventListener("click", (e) => {
         if (e.target === modal) this.cerrarModal();

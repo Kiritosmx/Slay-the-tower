@@ -1,5 +1,5 @@
 // Motor de combate por turnos estilo Slay the Spire
-import { CARDS, crearBarajaInicial, BOSS, PLAYER, elegirIntencionJefe, elegirRecompensas, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
+import { CARDS, crearBarajaInicial, BOSS, PLAYER, PISOS, crearJefeDePiso, elegirIntencionJefe, elegirRecompensas, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
 
 function barajar(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -10,7 +10,7 @@ function barajar(array) {
 }
 
 export class Combat {
-  constructor({ onStateChange, onGameOver, onVictory, onLog }) {
+  constructor({ onStateChange, onGameOver, onVictory, onLog, onSonido }) {
     // Jugador
     this.player = {
       name: PLAYER.name,
@@ -22,17 +22,10 @@ export class Combat {
       weak: 0,          // Débil: ataques del jugador -25%
       vulnerable: 0,
     };
-    // Jefe
-    this.boss = {
-      name: BOSS.name,
-      hp: BOSS.maxHp,
-      maxHp: BOSS.maxHp,
-      block: 0,
-      weak: 0,
-      vulnerable: 0,
-      intent: null,
-      lastIntentId: null,
-    };
+    // Jefe (enemigo del piso actual)
+    this.piso = 0;
+    this.boss = crearJefeDePiso(0);
+    this.victoriaTotal = false;
     // Mazos
     this.deck = barajar(crearBarajaInicial()); // Pila de robo
     this.hand = [];
@@ -53,6 +46,7 @@ export class Combat {
     this.onGameOver = onGameOver || (() => {});
     this.onVictory = onVictory || (() => {});
     this.onLog = onLog || (() => {});
+    this.onSonido = onSonido || (() => {});
   }
 
   // ---------- Flujo de combate ----------
@@ -67,9 +61,12 @@ export class Combat {
     // Reducir debuffs al inicio del turno del jugador
     if (this.player.weak > 0) this.player.weak--;
     if (this.player.vulnerable > 0) this.player.vulnerable--;
-    // Nueva intención del jefe (se muestra durante el turno del jugador)
-    this.boss.intent = elegirIntencionJefe(this.boss.lastIntentId);
-    this.boss.lastIntentId = this.boss.intent.id;
+    // Nueva intención del jefe (se muestra durante el turno del jugador).
+    // Se clona con el daño de este piso para no contaminar la base.
+    const base = elegirIntencionJefe(this.boss.lastIntentId);
+    const valorPiso = PISOS[this.piso]?.intenciones[base.id];
+    this.boss.intent = { ...base, valor: valorPiso ?? base.valor };
+    this.boss.lastIntentId = base.id;
     // El jefe pierde su bloqueo al inicio de su turno
     this.boss.block = 0;
     this.robar(5);
@@ -108,10 +105,14 @@ export class Combat {
     // --- Efectos de la carta ---
     if (card.block) {
       this.player.block += card.block;
+      this.onSonido("bloqueo");
     }
     if (card.damage) {
       const dmg = this.calcularDañoJugador(card.damage);
       this.jefeRecibirDaño(dmg, "slash");
+      this.onSonido("ataque");
+    } else if (!card.block) {
+      this.onSonido("habilidad");
     }
     if (card.weak) {
       this.boss.weak += card.weak;
@@ -208,6 +209,7 @@ export class Combat {
     if (restante > 0) {
       this.boss.hp = Math.max(0, this.boss.hp - restante);
       this.flashBoss(tipo);
+      this.onSonido("dano-enemigo");
     }
     this.onLog(`Infliges ${cantidad} de daño al jefe.`);
   }
@@ -222,6 +224,7 @@ export class Combat {
     if (restante > 0) {
       this.player.hp = Math.max(0, this.player.hp - restante);
       this.flashPlayer(tipo);
+      this.onSonido("dano-jugador");
     }
     this.onLog(`El jefe te inflige ${cantidad} de daño.`);
   }
@@ -230,6 +233,7 @@ export class Combat {
     // Ignora el bloqueo (drenado pasivo)
     this.player.hp = Math.max(0, this.player.hp - cantidad);
     this.flashPlayer(tipo);
+    this.onSonido("drenar");
     this.onLog(`El jefe drena ${cantidad} de vida.`);
   }
 
@@ -237,6 +241,7 @@ export class Combat {
   async finalizarTurno() {
     if (this.over || this.busy || this.pendingDiscard) return;
     this.busy = true;
+    this.onSonido("fin-turno");
     // Cartas de la mano van al descarte
     this.discard.push(...this.hand);
     this.hand = [];
@@ -260,6 +265,7 @@ export class Combat {
       this.busy = false;
       this.ultimaAccion = "Has sido derrotado";
       this.notify();
+      this.onSonido("derrota");
       return this.onGameOver();
     }
     if (this.boss.hp <= 0) {
@@ -274,21 +280,54 @@ export class Combat {
 
   ganar() {
     this.over = true;
-    this.ultimaAccion = "¡Jefe derrotado! Elige tu recompensa";
+    this.ultimaAccion = `¡${this.boss.name} derrotado! Elige tu recompensa`;
     this.recompensa = elegirRecompensas(3);
     this.notify();
+    this.onSonido("victoria");
     this.onVictory();
   }
 
-  // Elige 1 de las 3 cartas de recompensa: entra en la baraja (descarte)
+  // Elige 1 de las 3 cartas de recompensa: entra en la baraja y, si quedan
+  // pisos, se avanza al siguiente (vida persistente + 25% de cura).
   elegirRecompensa(cardId) {
     if (!this.over || this.boss.hp > 0) return;
     if (!this.recompensa || !this.recompensa.includes(cardId)) return;
     this.discard.push(cardId);
     this.recompensaElegida = cardId;
     this.recompensa = null;
+    this.onSonido("recompensa");
+    if (this.piso >= PISOS.length - 1) {
+      this.victoriaTotal = true;
+      this.ultimaAccion = `${CARDS[cardId].name} se une a tu baraja. ¡Torre conquistada!`;
+      this.notify();
+      return;
+    }
     this.ultimaAccion = `${CARDS[cardId].name} se une a tu baraja`;
-    this.notify();
+    this.avanzarPiso();
+  }
+
+  // Sube al siguiente piso: el jefe cambia, la baraja (con la carta nueva)
+  // se rebaraja, la vida persiste y se cura un 25% del máximo.
+  avanzarPiso() {
+    if (this.piso >= PISOS.length - 1) return false;
+    this.piso++;
+    this.boss = crearJefeDePiso(this.piso);
+    const coleccion = [...this.deck, ...this.hand, ...this.discard];
+    this.deck = barajar(coleccion);
+    this.hand = [];
+    this.discard = [];
+    this.turn = 0;
+    this.over = false;
+    this.busy = false;
+    this.pendingDiscard = null;
+    this.recompensa = null;
+    const cura = Math.floor(this.player.maxHp * 0.25);
+    this.player.hp = Math.min(this.player.maxHp, this.player.hp + cura);
+    this.player.block = 0;
+    this.onSonido("curacion");
+    this.ultimaAccion = `Piso ${this.piso + 1}/${PISOS.length}: ${this.boss.name} (+${cura} PS)`;
+    this.turnoJugador();
+    return true;
   }
 
   // ---------- Utilidades ----------

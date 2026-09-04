@@ -3,11 +3,22 @@ import "./styles.css";
 import { Combat } from "./combat.js";
 import { UI } from "./ui.js";
 import { CargadorImagenesResiliente } from "./resilient.js";
-import { CARDS, BOSS } from "./gamedata.js";
+import { CARDS, PISOS } from "./gamedata.js";
+import { Sonidos } from "./sonidos.js";
 import { SistemaCheckpoints } from "./checkpoints.js";
 
 const app = document.querySelector("#app");
 const ui = new UI(app);
+
+// ---------- Sonidos sintetizados (Web Audio, sin archivos) ----------
+const sonidos = new Sonidos();
+ui.setSonidos(sonidos);
+if (typeof globalThis !== "undefined") globalThis.__SONIDOS__ = sonidos;
+if (typeof window !== "undefined") window.__SONIDOS__ = sonidos;
+// Los navegadores exigen un gesto para el audio: se desbloquea al primer toque
+if (typeof document !== "undefined") {
+  document.addEventListener("pointerdown", () => sonidos.desbloquear(), { once: true });
+}
 
 // ---------- Resiliencia ante incidentes del proveedor de imágenes ----------
 // El proveedor remoto ha presentado errores 503 (cache_only_cold) en el
@@ -23,6 +34,7 @@ const combat = new Combat({
   onGameOver: () => console.log("Derrota"),
   onVictory: () => console.log("Victoria"),
   onLog: (msg) => console.log("[combate]", msg),
+  onSonido: (nombre) => sonidos.reproducir(nombre),
 });
 
 // Inicia el primer turno una vez que combat está inicializado
@@ -36,7 +48,7 @@ const urlsRecursos = [
   CARDS.defend.image,
   CARDS.neutralize.image,
   CARDS.survivor.image,
-  BOSS.image,
+  ...PISOS.map((p) => p.image),
 ];
 cargador.precargar(urlsRecursos).then(() => {
   ui.setCombat(combat); // re-render con recursos resueltos

@@ -5,7 +5,7 @@
 // ============================================================
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { CARDS, BOSS, CARTAS_RECOMPENSA, IDS_RECOMPENSA, elegirRecompensas, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
+import { CARDS, BOSS, PISOS, CARTAS_RECOMPENSA, IDS_RECOMPENSA, elegirRecompensas, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
 import { Combat } from "../src/combat.js";
 import { UI } from "../src/ui.js";
 import {
@@ -19,6 +19,7 @@ import {
   CargadorImagenesResiliente,
 } from "../src/resilient.js";
 import { SistemaCheckpoints, CHECKPOINTS } from "../src/checkpoints.js";
+import { Sonidos } from "../src/sonidos.js";
 
 function crearCombate() {
   const combat = new Combat({
@@ -604,8 +605,13 @@ describe("Estética Spire: escena y pilas", () => {
     expect(lados[0]).toMatch(/lado-jugador/);
     expect(lados[1]).toMatch(/lado-jefe/);
     expect(contenedor.querySelector(".sprite-jugador").getAttribute("src")).toContain("silent_sin_fondo");
-    expect(contenedor.querySelector(".sprite-jefe").getAttribute("src")).toContain("/boss.png");
-    expect(contenedor.querySelector(".sprite-jefe").getAttribute("alt")).toContain("Centinela");
+    expect(contenedor.querySelector(".sprite-jefe").getAttribute("src")).toContain("/enemigo_0.png");
+    expect(contenedor.querySelector(".sprite-jefe").getAttribute("alt")).toContain("Gólem de Cuerda");
+  });
+
+  it("muestra el piso actual y el botón de sonido", () => {
+    expect(contenedor.querySelector(".piso").textContent).toContain("Piso 1/5");
+    expect(contenedor.querySelector("#btn-sonido")).toBeTruthy();
   });
 
   it("muestra orbe de energía y pilas de robo/descarte con contadores", () => {
@@ -686,18 +692,20 @@ describe("Recompensa de victoria: elige 1 de 3", () => {
     combat.recompensa.forEach((id) => expect(CARDS[id]).toBeDefined());
   });
 
-  it("elegir 1 la a�ade a la baraja y cierra las opciones", () => {
+  it("elegir 1 la añade a la baraja y avanza al siguiente piso", () => {
     const combat = combateVictorioso();
     const totalAntes = combat.deck.length + combat.hand.length + combat.discard.length;
     const elegida = combat.recompensa[1];
     combat.elegirRecompensa(elegida);
-    expect(combat.recompensa).toBeNull();
     expect(combat.recompensaElegida).toBe(elegida);
-    expect(combat.deck.length + combat.hand.length + combat.discard.length).toBe(totalAntes + 1);
-    expect(combat.discard).toContain(elegida);
+    expect(combat.piso).toBe(1);
+    expect(combat.over).toBe(false);
+    const coleccion = [...combat.deck, ...combat.hand, ...combat.discard];
+    expect(coleccion.length).toBe(totalAntes + 1);
+    expect(coleccion).toContain(elegida);
   });
 
-  it("una elecci�n inv�lida o duplicada se ignora", () => {
+  it("una elección inválida o duplicada se ignora", () => {
     const combat = combateVictorioso();
     combat.elegirRecompensa("strike");
     expect(combat.recompensa).toHaveLength(3);
@@ -705,10 +713,11 @@ describe("Recompensa de victoria: elige 1 de 3", () => {
     const elegida = combat.recompensa[0];
     combat.elegirRecompensa(elegida);
     combat.elegirRecompensa(elegida);
-    expect(combat.discard.filter((id) => id === elegida)).toHaveLength(1);
+    const coleccion = [...combat.deck, ...combat.hand, ...combat.discard];
+    expect(coleccion.filter((id) => id === elegida)).toHaveLength(1);
   });
 
-  it("la UI muestra las 3 opciones y elegir 1 actualiza a victoria", () => {
+  it("la UI muestra las 3 opciones y elegir 1 avanza de piso", () => {
     document.body.innerHTML = "";
     const contenedor = document.createElement("div");
     document.body.appendChild(contenedor);
@@ -732,8 +741,9 @@ describe("Recompensa de victoria: elige 1 de 3", () => {
     primera.click();
     expect(combat.recompensaElegida).toBe(primera.dataset.id);
     expect(contenedor.querySelector("#recompensa")).toBeNull();
-    expect(contenedor.innerHTML).toContain("VICTORIA");
-    expect(contenedor.innerHTML).toContain("se une a tu baraja");
+    expect(combat.piso).toBe(1);
+    expect(contenedor.innerHTML).toContain("Piso 2/5");
+    expect(contenedor.innerHTML).toContain("Caballero Dorado");
     contenedor.remove();
   });
 });
@@ -825,5 +835,173 @@ describe("Arrastre estilo Spire: carta + flecha", () => {
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain("6");
     ui.cancelarArrastre();
+  });
+});
+
+describe("Pisos de la torre", () => {
+  function nuevoCombate() {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: () => {},
+    });
+    combat.iniciarCombate();
+    return combat;
+  }
+
+  function vencerPiso(combat) {
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    combat.elegirRecompensa(combat.recompensa[0]);
+  }
+
+  it("hay 5 pisos con imagen, vida y daño propios", () => {
+    expect(PISOS).toHaveLength(5);
+    expect(PISOS.map((p) => p.nombre)).toEqual([
+      "Gólem de Cuerda",
+      "Caballero Dorado",
+      "Ent Sombrío",
+      "Coloso del Cenagal",
+      "Centinela de la Torre",
+    ]);
+    for (const p of PISOS) {
+      expect(p.image).toMatch(/^(\/|https?:\/\/)/);
+      expect(p.maxHp).toBeGreaterThan(0);
+    }
+    expect(PISOS[0].maxHp).toBeLessThan(PISOS[4].maxHp);
+  });
+
+  it("se empieza en el piso 1 con su jefe", () => {
+    const combat = nuevoCombate();
+    expect(combat.piso).toBe(0);
+    expect(combat.boss.name).toBe("Gólem de Cuerda");
+    expect(combat.boss.hp).toBe(60);
+    expect(combat.boss.image).toContain("enemigo_0");
+  });
+
+  it("el daño del jefe es el de su piso", () => {
+    const combat = nuevoCombate();
+    expect(combat.boss.intent.valor).toBeLessThanOrEqual(11);
+    combat.piso = 4;
+    combat.turnoJugador();
+    expect(combat.boss.intent.valor).toBeLessThanOrEqual(16);
+  });
+
+  it("vencer avanza de piso con cura del 25% y baraja rebarajada", () => {
+    const combat = nuevoCombate();
+    combat.player.hp = 40;
+    const totalAntes = combat.deck.length + combat.hand.length + combat.discard.length;
+    vencerPiso(combat);
+    expect(combat.piso).toBe(1);
+    expect(combat.over).toBe(false);
+    expect(combat.boss.name).toBe("Caballero Dorado");
+    expect(combat.boss.hp).toBe(80);
+    expect(combat.player.hp).toBe(40 + Math.floor(72 * 0.25));
+    expect(combat.hand).toHaveLength(5);
+    expect(combat.deck.length + combat.hand.length + combat.discard.length).toBe(totalAntes + 1);
+  });
+
+  it("la cura no supera la vida máxima", () => {
+    const combat = nuevoCombate();
+    combat.player.hp = 70;
+    vencerPiso(combat);
+    expect(combat.player.hp).toBe(72);
+  });
+
+  it("el último piso da victoria total sin avanzar", () => {
+    const combat = nuevoCombate();
+    combat.piso = 4;
+    combat.boss = { ...combat.boss, name: "Centinela de la Torre", hp: 1, maxHp: 120 };
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    combat.elegirRecompensa(combat.recompensa[0]);
+    expect(combat.victoriaTotal).toBe(true);
+    expect(combat.piso).toBe(4);
+    expect(combat.avanzarPiso()).toBe(false);
+  });
+
+  it("la UI muestra el piso y la victoria total", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = nuevoCombate();
+    const ui = new UI(contenedor);
+    ui.setSonidos(new Sonidos());
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".piso").textContent).toContain("Piso 1/5");
+    combat.piso = 4;
+    combat.victoriaTotal = true;
+    combat.over = true;
+    combat.boss.hp = 0;
+    ui.setCombat(combat);
+    expect(contenedor.innerHTML).toContain("TORRE CONQUISTADA");
+    contenedor.remove();
+  });
+});
+
+describe("Sonidos sintetizados", () => {
+  it("registra y alterna el silencio sin reventar sin audio", () => {
+    const s = new Sonidos();
+    expect(s.silenciado).toBe(false);
+    s.reproducir("ataque");
+    s.reproducir("inexistente");
+    expect(s.historial.map((h) => h.nombre)).toEqual(["ataque", "inexistente"]);
+    s.alternar();
+    expect(s.silenciado).toBe(true);
+    s.reproducir("clic");
+    expect(s.historial).toHaveLength(3);
+    s.alternar();
+    expect(s.silenciado).toBe(false);
+  });
+
+  it("el combate emite sonidos en las acciones", () => {
+    const sonados = [];
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: (n) => sonados.push(n),
+    });
+    combat.iniciarCombate();
+    combat.hand[0] = "strike";
+    combat.jugarCarta(0);
+    expect(sonados).toContain("ataque");
+    expect(sonados).toContain("dano-enemigo");
+    combat.hand[0] = "defend";
+    combat.jugarCarta(0);
+    expect(sonados).toContain("bloqueo");
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    expect(sonados).toContain("victoria");
+  });
+
+  it("el botón de sonido silencia y suena al pulsar", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    const ui = new UI(contenedor);
+    const s = new Sonidos();
+    ui.setSonidos(s);
+    ui.setCombat(combat);
+    expect(contenedor.querySelector("#btn-sonido").textContent).toContain("🔊");
+    contenedor.querySelector("#btn-sonido").click();
+    expect(s.silenciado).toBe(true);
+    expect(contenedor.querySelector("#btn-sonido").textContent).toContain("🔇");
+    contenedor.remove();
   });
 });
