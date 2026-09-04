@@ -208,6 +208,11 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 01:15 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.29 kB JS / gzip 12.66 kB) | Confirmar jefe/fondo/cartas sin regresiones | TA | Hito ✅ |
 | 2026-09-05 01:30 | `Images/image.png` → `Images/boss.png` + `public/boss.png` | Nueva apariencia del jefe desde `image.png` (1024×1024 RGB): fondo blanco eliminado por script propio (Node nativo, umbral por canal mínimo, 85.5% transparente) → `BOSS.image` = `/boss.png`; retirados blend/recorte (era para el PNG anterior) | Jefe limpio sobre la cueva, tamaño 2x intacto | TA | Alto |
 | 2026-09-05 01:35 | `tests/`, `dist/` | **Verificación de hito**: 54/54 pruebas OK + build OK (39.28 kB JS / gzip 12.66 kB) | Confirmar nueva apariencia sin regresiones | TA | Hito ✅ |
+| 2026-09-05 02:00 | `public/boss.png`, `Images/boss.png` | Recorte del padding transparente (1024×1024 → 647×735): el ciervo llena su caja y el 2x sobre la Silenciosa ya es visible real, no solo de caja | Tamaño 2x efectivo | TA | Medio |
+| 2026-09-05 02:05 | `src/gamedata.js` | Pool `CARTAS_RECOMPENSA` (10 cartas reales de la Silenciosa vía wiki: Rodilla Voladora, Lluvia de Dagas, Danza de Cuchillas, Depredador, Puñalada Tóxica, Golpe Bajo, Barrido, Voltereta, Capa y Daga, Lamento Perforante) con efectos adaptados al motor + `elegirRecompensas(3)` | Recompensas fieles al original | TA | Alto |
+| 2026-09-05 02:10 | `src/combat.js`, `src/ui.js`, `src/styles.css` | `ganar()` genera 3 opciones; `elegirRecompensa(id)` valida y añade 1 a la baraja; overlay `#recompensa` estilo Spire (clic/Enter/Espacio) y mensaje de carta ganada; inválidas y duplicadas se ignoran | Elige 1 de 3 al vencer | TA | **Crítico** |
+| 2026-09-05 02:15 | `tests/checkpoints.test.js` | Nuevo bloque (5 pruebas, 59 total): pool válido, 3 opciones al vencer, elección suma 1 a la baraja, inválidas ignoradas, flujo UI completo | Fijar la recompensa | TA | Alto |
+| 2026-09-05 02:20 | `tests/`, `dist/` | **Verificación de hito**: 59/59 pruebas OK (x2) + build OK (44.74 kB JS / gzip 13.83 kB) | Confirmar recompensa sin regresiones | TA | Hito ✅ |
 
 ---
 

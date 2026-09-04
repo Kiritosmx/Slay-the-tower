@@ -5,7 +5,7 @@
 // ============================================================
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { CARDS, BOSS, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
+import { CARDS, BOSS, CARTAS_RECOMPENSA, IDS_RECOMPENSA, elegirRecompensas, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
 import { Combat } from "../src/combat.js";
 import { UI } from "../src/ui.js";
 import {
@@ -647,5 +647,93 @@ describe("Estética Spire: escena y pilas", () => {
     expect(combat.obtenerPilaRobo().length).toBe(combat.deck.length);
     expect(combat.obtenerPilaDescarte().length).toBe(combat.discard.length);
     expect(combat.obtenerPilaRobo().every((c) => c.name)).toBe(true);
+  });
+});
+
+describe("Recompensa de victoria: elige 1 de 3", () => {
+  function combateVictorioso() {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    return combat;
+  }
+
+  it("el pool trae 10 cartas reales de la Silenciosa con efectos del motor", () => {
+    expect(IDS_RECOMPENSA).toHaveLength(10);
+    for (const id of IDS_RECOMPENSA) {
+      const card = CARDS[id];
+      expect(card.name).toBeTruthy();
+      expect(["Ataque", "Habilidad"]).toContain(card.type);
+      expect(card.damage ?? card.block).toBeGreaterThan(0);
+    }
+    expect(elegirRecompensas(3)).toHaveLength(3);
+    expect(new Set(elegirRecompensas(3)).size).toBe(3);
+  });
+
+  it("al vencer se generan 3 opciones distintas", () => {
+    const combat = combateVictorioso();
+    expect(combat.over).toBe(true);
+    expect(combat.recompensa).toHaveLength(3);
+    expect(new Set(combat.recompensa).size).toBe(3);
+    combat.recompensa.forEach((id) => expect(CARDS[id]).toBeDefined());
+  });
+
+  it("elegir 1 la a�ade a la baraja y cierra las opciones", () => {
+    const combat = combateVictorioso();
+    const totalAntes = combat.deck.length + combat.hand.length + combat.discard.length;
+    const elegida = combat.recompensa[1];
+    combat.elegirRecompensa(elegida);
+    expect(combat.recompensa).toBeNull();
+    expect(combat.recompensaElegida).toBe(elegida);
+    expect(combat.deck.length + combat.hand.length + combat.discard.length).toBe(totalAntes + 1);
+    expect(combat.discard).toContain(elegida);
+  });
+
+  it("una elecci�n inv�lida o duplicada se ignora", () => {
+    const combat = combateVictorioso();
+    combat.elegirRecompensa("strike");
+    expect(combat.recompensa).toHaveLength(3);
+    expect(combat.recompensaElegida).toBeNull();
+    const elegida = combat.recompensa[0];
+    combat.elegirRecompensa(elegida);
+    combat.elegirRecompensa(elegida);
+    expect(combat.discard.filter((id) => id === elegida)).toHaveLength(1);
+  });
+
+  it("la UI muestra las 3 opciones y elegir 1 actualiza a victoria", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    let ui;
+    const combat = new Combat({
+      onStateChange: () => ui.setCombat(combat),
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    ui = new UI(contenedor);
+    combat.iniciarCombate();
+    ui.setCombat(combat);
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    expect(contenedor.querySelector("#recompensa")).toBeTruthy();
+    expect(contenedor.querySelectorAll(".carta-recompensa")).toHaveLength(3);
+    const primera = contenedor.querySelector(".carta-recompensa");
+    primera.click();
+    expect(combat.recompensaElegida).toBe(primera.dataset.id);
+    expect(contenedor.querySelector("#recompensa")).toBeNull();
+    expect(contenedor.innerHTML).toContain("VICTORIA");
+    expect(contenedor.innerHTML).toContain("se une a tu baraja");
+    contenedor.remove();
   });
 });

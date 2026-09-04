@@ -150,7 +150,7 @@ export class UI {
         </div>
       </div>
 
-      ${c.over ? `<div class="overlay-fin"><div class="mensaje-fin">${c.boss.hp <= 0 ? "¡VICTORIA!" : "DERROTA"}<button onclick="location.reload()">Reintentar</button></div></div>` : ""}
+      ${c.over ? this.renderOverlayFin(c) : ""}
 
       ${this.modalAbierto && this.vistaModal === "baraja" ? this.renderModalBaraja() : ""}
       ${this.modalAbierto && this.vistaModal === "robo" ? this.renderModalPila("robo") : ""}
@@ -164,6 +164,14 @@ export class UI {
         if (this.modalAbierto) return; // El modal bloquea jugar cartas
         if (c.pendingDiscard) c.descartarCarta(i);
         else c.jugarCarta(i);
+      });
+    });
+    // Recompensa de victoria: solo se puede elegir 1 de las 3
+    this.root.querySelectorAll(".carta-recompensa[data-id]").forEach((el) => {
+      const elegir = () => c.elegirRecompensa(el.dataset.id);
+      el.addEventListener("click", elegir);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); }
       });
     });
     const btn = this.root.querySelector("#btn-fin-turno");
@@ -215,6 +223,38 @@ export class UI {
 
   cerrarModalBaraja() {
     this.cerrarModal();
+  }
+
+  // ---------- Overlay de fin: recompensa (elige 1 de 3) o resultado ----------
+  renderOverlayFin(c) {
+    if (c.boss.hp > 0) {
+      return `<div class="overlay-fin"><div class="mensaje-fin">DERROTA<button onclick="location.reload()">Reintentar</button></div></div>`;
+    }
+    // Victoria con recompensa pendiente: elegir 1 de 3 (estilo Spire)
+    if (c.recompensa && c.recompensa.length > 0) {
+      return `
+      <div class="overlay-fin overlay-recompensa" id="recompensa" role="dialog" aria-modal="true" aria-label="Recompensa de victoria: elige 1 carta de 3">
+        <div class="mensaje-fin mensaje-recompensa">
+          <span>¡VICTORIA!</span>
+          <span class="recompensa-sub">Elige 1 carta para tu baraja</span>
+          <div class="recompensa-cartas">
+            ${c.recompensa.map((cardId) => {
+              const card = CARDS[cardId];
+              return `
+              <div class="carta carta-recompensa" data-id="${cardId}" data-tipo="${card.type}" role="button" tabindex="0" aria-label="Elegir ${card.name}">
+                <div class="carta-costo">${card.cost}</div>
+                <div class="carta-nombre">${card.name}</div>
+                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+                <div class="carta-tipo">${card.type}</div>
+                <div class="carta-descripcion">${card.description}</div>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>`;
+    }
+    const ganada = c.recompensaElegida ? CARDS[c.recompensaElegida] : null;
+    return `<div class="overlay-fin"><div class="mensaje-fin">¡VICTORIA!${ganada ? `<span class="recompensa-ganada">🃏 ${ganada.name} se une a tu baraja</span>` : ""}<button onclick="location.reload()">Reintentar</button></div></div>`;
   }
 
   renderModalBaraja() {

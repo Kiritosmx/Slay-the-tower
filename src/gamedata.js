@@ -62,6 +62,122 @@ export function crearBarajaInicial() {
   ];
 }
 
+// ---------- RECOMPENSAS DE VICTORIA ----------
+// Cartas reales de la Silenciosa (Slay the Spire, vía wiki) con efectos
+// adaptados al motor (daño / Bloqueo / Débil). Al vencer se ofrecen 3
+// aleatorias y solo se puede elegir 1 para la baraja.
+export const CARTAS_RECOMPENSA = {
+  flyingknee: {
+    id: "flyingknee",
+    name: "Rodilla Voladora",
+    type: "Ataque",
+    cost: 1,
+    damage: 8,
+    description: "Inflige 8 de daño.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, assassin knee strike in mid-air, green cloak motion, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  daggerspray: {
+    id: "daggerspray",
+    name: "Lluvia de Dagas",
+    type: "Ataque",
+    cost: 1,
+    damage: 7,
+    description: "Inflige 7 de daño.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, fan of thrown daggers with green trails, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  bladedance: {
+    id: "bladedance",
+    name: "Danza de Cuchillas",
+    type: "Ataque",
+    cost: 1,
+    damage: 9,
+    description: "Inflige 9 de daño.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, whirling dance of spectral blades around a hooded figure, teal sparks, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  predator: {
+    id: "predator",
+    name: "Depredador",
+    type: "Ataque",
+    cost: 2,
+    damage: 12,
+    description: "Inflige 12 de daño.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, predator eyes in darkness lunging with fangs and daggers, green mist, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  poisonstab: {
+    id: "poisonstab",
+    name: "Puñalada Tóxica",
+    type: "Ataque",
+    cost: 1,
+    damage: 5,
+    weak: 2,
+    description: "Inflige 5 de daño. Aplica 2 de Débil.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, dagger dripping purple poison striking forward, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  suckerpunch: {
+    id: "suckerpunch",
+    name: "Golpe Bajo",
+    type: "Ataque",
+    cost: 1,
+    damage: 7,
+    weak: 1,
+    description: "Inflige 7 de daño. Aplica 1 de Débil.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, dirty underhand punch with brass knuckles in a tavern brawl, dark moody, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  legsweep: {
+    id: "legsweep",
+    name: "Barrido",
+    type: "Ataque",
+    cost: 2,
+    damage: 11,
+    weak: 2,
+    description: "Inflige 11 de daño. Aplica 2 de Débil.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, sweeping leg kick tripping an armored foe, dust and motion, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  backflip: {
+    id: "backflip",
+    name: "Voltereta",
+    type: "Habilidad",
+    cost: 1,
+    block: 7,
+    description: "Gana 7 de Bloqueo.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, acrobat doing a backflip over a sword swing, green scarf flowing, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  cloakdagger: {
+    id: "cloakdagger",
+    name: "Capa y Daga",
+    type: "Habilidad",
+    cost: 1,
+    block: 6,
+    description: "Gana 6 de Bloqueo.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, cloak unfurling like wings hiding a drawn dagger, teal glow, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+  piercingwail: {
+    id: "piercingwail",
+    name: "Lamento Perforante",
+    type: "Habilidad",
+    cost: 1,
+    block: 4,
+    weak: 1,
+    description: "Gana 4 de Bloqueo. Aplica 1 de Débil.",
+    image: IMG + "?prompt=" + encodeURIComponent("fantasy card art, banshee scream shattering air with visible sound waves, dark background, stylized game illustration, vertical, no text") + "&image_size=portrait_4_3",
+  },
+};
+
+// Todas las cartas jugables (base + recompensas) en un solo mapa
+for (const [id, card] of Object.entries(CARTAS_RECOMPENSA)) CARDS[id] = card;
+
+export const IDS_RECOMPENSA = Object.keys(CARTAS_RECOMPENSA);
+
+// 3 opciones distintas al azar para la recompensa de victoria
+export function elegirRecompensas(n = 3) {
+  const pool = [...IDS_RECOMPENSA];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, n);
+}
+
 // ---------- JUGADOR ----------
 export const PLAYER = {
   name: "La Silenciosa",

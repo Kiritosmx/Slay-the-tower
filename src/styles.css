@@ -493,6 +493,35 @@ body::before {
   cursor: pointer;
 }
 
+/* ---------- Recompensa de victoria (elige 1 de 3) ---------- */
+.overlay-recompensa { z-index: 55; }
+
+.mensaje-recompensa { font-size: 34px; max-width: min(720px, calc(100vw - 32px)); }
+
+.recompensa-sub {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #9dd0ff;
+}
+
+.recompensa-cartas {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.carta-recompensa { cursor: pointer; }
+.carta-recompensa:hover, .carta-recompensa:focus-visible {
+  transform: translateY(-10px) scale(1.05);
+  border-color: var(--dorado);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.75), 0 0 18px rgba(212, 175, 55, 0.4);
+  outline: none;
+}
+
+.recompensa-ganada { font-size: 17px; font-weight: 600; color: #9dd0ff; letter-spacing: 0; }
+
 /* ---------- Botón ver baraja ---------- */
 .btn-baraja {
   background: linear-gradient(180deg, #1f6feb, #1a4f8f);

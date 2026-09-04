@@ -1,5 +1,5 @@
 // Motor de combate por turnos estilo Slay the Spire
-import { CARDS, crearBarajaInicial, BOSS, PLAYER, elegirIntencionJefe, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
+import { CARDS, crearBarajaInicial, BOSS, PLAYER, elegirIntencionJefe, elegirRecompensas, INTENCIONES_JEFE, TIPOS } from "./gamedata.js";
 
 function barajar(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -44,6 +44,9 @@ export class Combat {
     this.ultimaAccion = "";
     // Modo descarte pendiente (Superviviente)
     this.pendingDiscard = null;
+    // Recompensa de victoria: 3 opciones, se elige 1 para la baraja
+    this.recompensa = null;
+    this.recompensaElegida = null;
 
     // Callbacks para la UI
     this.onStateChange = onStateChange || (() => {});
@@ -271,9 +274,21 @@ export class Combat {
 
   ganar() {
     this.over = true;
-    this.ultimaAccion = "¡Jefe derrotado!";
+    this.ultimaAccion = "¡Jefe derrotado! Elige tu recompensa";
+    this.recompensa = elegirRecompensas(3);
     this.notify();
     this.onVictory();
+  }
+
+  // Elige 1 de las 3 cartas de recompensa: entra en la baraja (descarte)
+  elegirRecompensa(cardId) {
+    if (!this.over || this.boss.hp > 0) return;
+    if (!this.recompensa || !this.recompensa.includes(cardId)) return;
+    this.discard.push(cardId);
+    this.recompensaElegida = cardId;
+    this.recompensa = null;
+    this.ultimaAccion = `${CARDS[cardId].name} se une a tu baraja`;
+    this.notify();
   }
 
   // ---------- Utilidades ----------
