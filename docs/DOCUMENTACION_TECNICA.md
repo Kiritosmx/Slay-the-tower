@@ -241,6 +241,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 07:25 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.83 kB JS / gzip 25.30 kB) | Confirmar gesto sin regresiones | TA | Hito ✅ |
 | 2026-09-05 07:40 | `src/ui.js`, `src/styles.css` | Reversión del sistema de flecha al anterior (carta visible a 1.12 sin fundidos, flecha fina z-45); se conservan las correcciones funcionales (capa fija anti-ocultación, anti-fantasma nativo) | Flecha como estaba | TA | Corrección |
 | 2026-09-05 07:45 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.30 kB JS / gzip 25.15 kB) | Confirmar reversión sin regresiones | TA | Hito ✅ |
+| 2026-09-05 08:00 | `src/ui.js`, `src/styles.css` | Flecha estilo original: sale de la carta, es gruesa con punta grande y al apuntar al jefe se clava en su centro (ya no flota en el cursor); cursor oculto durante el arrastre | Flecha hasta el objetivo | TA | Corrección |
+| 2026-09-05 08:05 | `tests/`, `dist/` | **Verificación de hito**: 109/109 pruebas OK + build OK (91.72 kB JS / gzip 25.29 kB) | Confirmar flecha sin regresiones | TA | Hito ✅ |
 
 ---
 

@@ -466,6 +466,9 @@ body::before {
   cursor: grabbing;
 }
 
+/* Durante el arrastre el cursor lo pone la flecha */
+body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
+
 #flecha-objetivo {
   position: fixed;
   inset: 0;

@@ -1425,3 +1425,51 @@ describe("Sin arrastre nativo del navegador", () => {
     expect(ev.defaultPrevented).toBe(true);
   });
 });
+
+describe("Flecha clavada al enemigo", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+    ui._forzarLimite = 500;
+    ui._rectJefe = { left: 0, top: 0, right: 200, bottom: 200 };
+  });
+
+  it("sobre el jefe la punta se clava en su centro, no en el cursor", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.moverArrastre(50, 50);
+    expect(ui.arrastre.sobreJefe).toBe(true);
+    const svg = document.getElementById("flecha-objetivo").innerHTML;
+    expect(svg).toContain("100,100");
+    expect(svg).not.toContain("50,50");
+    ui.cancelarArrastre();
+  });
+
+  it("lejos del jefe la flecha sigue al cursor", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.moverArrastre(700, 650);
+    expect(ui.arrastre.sobreJefe).toBe(false);
+    expect(document.getElementById("flecha-objetivo").innerHTML).toContain("700,650");
+    ui.cancelarArrastre();
+  });
+
+  it("el cursor se oculta durante el arrastre y vuelve al soltar", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    expect(document.body.classList.contains("arrastrando-carta")).toBe(true);
+    ui.cancelarArrastre();
+    expect(document.body.classList.contains("arrastrando-carta")).toBe(false);
+  });
+});

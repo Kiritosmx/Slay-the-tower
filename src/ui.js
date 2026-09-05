@@ -484,6 +484,7 @@ export class UI {
       el.style.zIndex = "60";
     }
     this.arrastre = { indice, x0: x, y0: y, x, y, baseX, baseY, w, h, enZona: false, sobreJefe: false, origenX: baseX + w / 2, origenY: baseY + h / 2 };
+    if (typeof document !== "undefined") document.body.classList.add("arrastrando-carta");
     this._dibujarFlecha();
     return true;
   }
@@ -528,6 +529,7 @@ export class UI {
   _limpiarArrastre() {
     this._quitarEscuchasVentana();
     this.arrastre = null;
+    if (typeof document !== "undefined") document.body.classList.remove("arrastrando-carta");
     if (this._capaFlecha) { this._capaFlecha.remove(); this._capaFlecha = null; }
     else document.getElementById("flecha-objetivo")?.remove();
     document.getElementById("vista-previa")?.remove();
@@ -596,20 +598,37 @@ export class UI {
       document.body.appendChild(this._capaFlecha);
     }
     const capa = this._capaFlecha;
-    const { origenX: x1, origenY: y1, x: x2, y: y2, enZona } = this.arrastre;
+    const { origenX: x1, origenY: y1, enZona, sobreJefe } = this.arrastre;
+    // Como en el original: al apuntar al enemigo la punta se clava en su
+    // centro en vez de quedarse flotando en el cursor.
+    let x2 = this.arrastre.x;
+    let y2 = this.arrastre.y;
+    if (sobreJefe) {
+      const centro = this.centroJefe();
+      if (centro) { x2 = centro.x; y2 = centro.y; }
+    }
     const mx = (x1 + x2) / 2;
     const color = enZona ? "#e8c84a" : "#8a94a0";
     const vw = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1280;
     const vh = typeof window !== "undefined" && window.innerHeight ? window.innerHeight : 800;
     capa.innerHTML = `
       <svg viewBox="0 0 ${vw} ${vh}" width="${vw}" height="${vh}">
-        <defs><marker id="punta-flecha" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="${color}"></path>
+        <defs><marker id="punta-flecha" markerWidth="14" markerHeight="14" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L12,5 L0,10 Z" fill="${color}"></path>
         </marker></defs>
-        <path d="M${x1},${y1} Q${mx},${Math.min(y1, y2) - 40} ${x2},${y2}"
-          fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
-        <circle cx="${x1}" cy="${y1}" r="8" fill="${color}"/>
+        <path d="M${x1},${y1} Q${mx},${Math.min(y1, y2) - 60} ${x2},${y2}"
+          fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
+        <circle cx="${x1}" cy="${y1}" r="10" fill="${color}"/>
       </svg>`;
+  }
+
+  // Centro del jefe para clavar la flecha (respeta el stub de pruebas)
+  centroJefe() {
+    const r = this.rectJefe();
+    if (!r) return null;
+    const w = r.width ?? r.right - r.left;
+    const h = r.height ?? r.bottom - r.top;
+    return { x: r.left + w / 2, y: r.top + h / 2 };
   }
 
   _pintarObjetivo() {
