@@ -239,6 +239,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 07:05 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.59 kB JS / gzip 25.27 kB) | Confirmar mano+arrastre sin regresiones | TA | Hito ✅ |
 | 2026-09-05 07:20 | `src/ui.js`, `src/styles.css` | Arrastre nativo del navegador desactivado (`draggable=false` en las 9 imágenes, `preventDefault` en pointerdown, `dragstart` anulado, `user-drag:none`); el gesto vuelve al arrastre propio | Se puede volver a jugar | TA | **Crítico** |
 | 2026-09-05 07:25 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.83 kB JS / gzip 25.30 kB) | Confirmar gesto sin regresiones | TA | Hito ✅ |
+| 2026-09-05 07:40 | `src/ui.js`, `src/styles.css` | Reversión del sistema de flecha al anterior (carta visible a 1.12 sin fundidos, flecha fina z-45); se conservan las correcciones funcionales (capa fija anti-ocultación, anti-fantasma nativo) | Flecha como estaba | TA | Corrección |
+| 2026-09-05 07:45 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.30 kB JS / gzip 25.15 kB) | Confirmar reversión sin regresiones | TA | Hito ✅ |
 
 ---
 

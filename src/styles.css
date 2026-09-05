@@ -464,21 +464,13 @@ body::before {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 22px rgba(232, 200, 74, 0.45);
   border-color: var(--dorado);
   cursor: grabbing;
-  transition: opacity 0.18s ease;
-}
-
-/* Al salir del marco la carta se desvanece y se convierte en la flecha */
-.carta.arrastrando.fuera-marco { opacity: 0; }
-
-#flecha-objetivo.intensa svg {
-  filter: drop-shadow(0 0 10px rgba(232, 200, 74, 0.9));
 }
 
 #flecha-objetivo {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 55;
+  z-index: 45;
 }
 
 .lado-jefe { position: relative; }
