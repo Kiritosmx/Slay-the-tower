@@ -1560,3 +1560,82 @@ describe("Mejora solo tras victoria", () => {
     expect(combat.mejoraPendiente).toBe(true);
   });
 });
+
+describe("Insignias de todos los efectos", () => {
+  function combateLimpio() {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand = [];
+    combat.deck = [];
+    combat.discard = [];
+    combat.player.energy = 10;
+    combat.player.maxEnergy = 10;
+    return combat;
+  }
+
+  it("sin efectos no hay insignias", () => {
+    const combat = combateLimpio();
+    expect(combat.estadosJugador()).toHaveLength(0);
+    expect(combat.estadosJefe()).toHaveLength(0);
+  });
+
+  it("destreza, espinas e intangible generan insignia", () => {
+    const combat = combateLimpio();
+    combat.hand = ["anticipate"];
+    combat.jugarCarta(0);
+    combat.espinas = 5;
+    combat.player.intangible = 2;
+    const ids = combat.estadosJugador().map((e) => e.id);
+    expect(ids).toContain("destreza");
+    expect(ids).toContain("espinas");
+    expect(ids).toContain("intangible");
+    expect(combat.estadosJugador().find((e) => e.id === "destreza").texto).toContain("Des 2");
+  });
+
+  it("los poderes activos generan insignia con su valor", () => {
+    const combat = combateLimpio();
+    combat.powers.accuracy = 4;
+    combat.powers.fumes = 2;
+    combat.powers.infBlades = 1;
+    combat.powers.tracking = 1;
+    combat.nextBlock = 4;
+    combat.nextEnergy = 1;
+    const textos = combat.estadosJugador().map((e) => e.texto).join("|");
+    expect(textos).toContain("4");
+    expect(textos).toContain("Humos");
+    expect(textos).toContain("Dagas");
+    expect(textos).toContain("Rastreo");
+  });
+
+  it("estadosJefe describe debil, vulnerable y veneno", () => {
+    const combat = combateLimpio();
+    combat.boss.weak = 1;
+    combat.boss.vulnerable = 2;
+    combat.boss.poison = 6;
+    const estados = combat.estadosJefe();
+    expect(estados.map((e) => e.id)).toEqual(["weak", "vulnerable", "poison"]);
+    expect(estados.every((e) => e.titulo && e.clase)).toBe(true);
+  });
+
+  it("la UI pinta las insignias del jugador y del jefe", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = combateLimpio();
+    combat.hand = ["anticipate"];
+    combat.jugarCarta(0);
+    combat.espinas = 3;
+    combat.boss.poison = 4;
+    const ui = new UI(contenedor);
+    ui.setCombat(combat);
+    expect(contenedor.querySelectorAll(".insignias-jugador .estado").length).toBeGreaterThanOrEqual(2);
+    expect(contenedor.querySelector(".insignias-jefe .estado.veneno")).toBeTruthy();
+    contenedor.remove();
+  });
+});

@@ -251,6 +251,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 09:05 | `tests/`, `dist/` | **Verificación de hito**: 112/112 pruebas OK + build OK (90.87 kB JS / gzip 24.99 kB) | Confirmar horizontal sin regresiones | TA | Hito ✅ |
 | 2026-09-05 09:20 | `src/main.js` | La mejora ya no se ofrece al empezar a jugar, solo al derrotar enemigos (avanzarPiso) | Flujo correcto | TA | Corrección |
 | 2026-09-05 09:25 | `tests/`, `dist/` | **Verificación de hito**: 114/114 pruebas OK + build OK (90.85 kB JS / gzip 24.98 kB) | Confirmar flujo sin regresiones | TA | Hito ✅ |
+| 2026-09-05 09:40 | `src/combat.js`, `src/ui.js`, `src/styles.css` | `estadosJugador()`/`estadosJefe()`: insignias de Destreza, Espinas, Intangible, los 14 poderes, bloqueos/energía/robos programados y temporales de turno; jefe con Débil, Vulnerable y Veneno | Todos los efectos visibles | TA | Alto |
+| 2026-09-05 09:45 | `tests/`, `dist/` | **Verificación de hito**: 119/119 pruebas OK + build OK (94.09 kB JS / gzip 25.84 kB) | Confirmar insignias sin regresiones | TA | Hito ✅ |
 
 ---
 

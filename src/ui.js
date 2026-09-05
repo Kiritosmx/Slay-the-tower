@@ -115,6 +115,7 @@ export class UI {
               <div class="entidad-info">
                 <div class="entidad-nombre">${c.player.name}
                   ${c.player.weak > 0 ? `<span class="estado debuff" title="Débil: tus ataques infligen 25% menos">Débil ${c.player.weak}</span>` : ""}
+                  <span class="insignias insignias-jugador">${c.estadosJugador().map((e) => `<span class="estado ${e.clase}" title="${e.titulo}">${e.icono ? `${e.icono} ` : ""}${e.texto}</span>`).join("")}</span>
                 </div>
                 ${barraVida(c.player, false)}
               </div>
@@ -136,7 +137,7 @@ export class UI {
             <div class="entidad jefe" data-entidad="jefe">
               <img draggable="false" class="sprite sprite-jefe${c.boss.escena ? " fondo-escena" : ""}" src="${imagenResiliente(this.cargador, c.boss.image)}" alt="${c.boss.name}" />
               <div class="entidad-info">
-                <div class="entidad-nombre">${c.boss.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}${c.boss.vulnerable > 0 ? `<span class="estado vulnerable" title="Vulnerable: recibe 50% más de daño">Vuln. ${c.boss.vulnerable}</span>` : ""}${(c.boss.poison || 0) > 0 ? `<span class="estado veneno" title="Veneno: pierde vida al empezar su turno">☠ ${c.boss.poison}</span>` : ""}</div>
+                <div class="entidad-nombre">${c.boss.name}<span class="insignias insignias-jefe">${c.estadosJefe().map((e) => `<span class="estado ${e.clase}" title="${e.titulo}">${e.icono ? `${e.icono} ` : ""}${e.texto}</span>`).join("")}</span></div>
                 ${barraVida(c.boss, true)}
               </div>
             </div>

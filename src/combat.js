@@ -494,6 +494,69 @@ export class Combat {
     }
   }
 
+  // ---------- Insignias de estado (para la UI) ----------
+  // Describen todos los efectos activos con icono, texto y ayuda.
+  estadosJugador() {
+    const e = [];
+    const dex = this.destrezaPerm + this.destrezaTurno;
+    if (dex > 0) {
+      e.push({
+        id: "destreza", icono: "🎯", texto: `Des ${dex}`,
+        titulo: `Destreza: +${dex} al Bloqueo` + (this.destrezaTurno > 0 ? ` (${this.destrezaPerm} perm. + ${this.destrezaTurno} este turno)` : " permanente"),
+        clase: "poder",
+      });
+    }
+    if (this.espinas > 0) {
+      e.push({ id: "espinas", icono: "🌵", texto: `${this.espinas}`, titulo: `Espinas: devuelve ${this.espinas} de daño al atacante`, clase: "temp" });
+    }
+    if (this.player.intangible > 0) {
+      e.push({ id: "intangible", icono: "👻", texto: `${this.player.intangible}`, titulo: "Intangible: el daño recibido baja a 1", clase: "temp" });
+    }
+    const P = this.powers;
+    const poderes = [
+      ["accuracy", "Precisión", (n) => `+${n}`, `Dagas +N de daño`],
+      ["fumes", "Humos", (n) => `${n}`, `Veneno +N cada turno`],
+      ["infBlades", "Dagas", () => "/turno", `Una Daga cada turno`],
+      ["afterimage", "Réplica", (n) => `+${n}`, `Bloqueo +N por carta jugada`],
+      ["envenom", "Envenenar", (n) => `+${n}`, `Tus Ataques aplican N de Veneno`],
+      ["tracking", "Rastreo", () => "", `+50% a objetivos Vulnerables`],
+      ["serpent", "Serpiente", (n) => `+${n}`, `Cada carta jugada inflige N`],
+      ["speedster", "Velocista", (n) => `+${n}`, `Robar inflige N de daño`],
+      ["sneaky", "Sigilo", (n) => `+${n}`, `Tus Ataques dan N de Bloqueo`],
+      ["phantom", "Fantasma", (n) => `+${n}`, `Primera Daga +N y se conservan`],
+      ["masterplanner", "Estratega", () => "", `Tus Habilidades ganan Escurridiza`],
+      ["accelerant", "Acelerante", (n) => `x${n + 1}`, `El Veneno actúa N veces`],
+      ["tools", "Oficio", () => "", `Robas y descartas 1 cada turno`],
+      ["welllaid", "Plan", () => "", `No descartas tu mano`],
+    ];
+    for (const [id, nombre, fmt, ayuda] of poderes) {
+      if (P[id]) e.push({ id, icono: "✦", texto: `${nombre} ${fmt(P[id])}`.trim(), titulo: ayuda.replace("N", P[id]), clase: "poder" });
+    }
+    if (this.nextBlock > 0) e.push({ id: "nextBlock", icono: "⏭", texto: `+${this.nextBlock} 🛡`, titulo: "Bloqueo programado para el próximo turno", clase: "temp" });
+    if (this.nextEnergy > 0) e.push({ id: "nextEnergy", icono: "⏭", texto: `+${this.nextEnergy} ⚡`, titulo: "Energía programada para el próximo turno", clase: "temp" });
+    if (this.nextDraw > 0) e.push({ id: "nextDraw", icono: "⏭", texto: `+${this.nextDraw} 🂠`, titulo: "Robo programado para el próximo turno", clase: "temp" });
+    if (this.concoctN > 0) e.push({ id: "concoct", icono: "⚗", texto: `Veneno +${this.concoctN}`, titulo: "Tus Ataques aplican Veneno este turno", clase: "temp" });
+    if (this.strangleN > 0) e.push({ id: "strangle", icono: "🗡", texto: `-${this.strangleN} PS`, titulo: "Tus cartas quitan PS este turno", clase: "temp" });
+    if (this.corrosiveN > 0) e.push({ id: "corrosive", icono: "☣", texto: `Veneno +${this.corrosiveN}`, titulo: "Robar aplica Veneno este turno", clase: "temp" });
+    if (this.doubleNext) e.push({ id: "doubleNext", icono: "✖", texto: "Doble", titulo: "Tu próximo Ataque inflige el doble", clase: "temp" });
+    if (this.pounceFree) e.push({ id: "pounceFree", icono: "🆓", texto: "Hab. gratis", titulo: "Tu próxima Habilidad cuesta 0", clase: "temp" });
+    return e;
+  }
+
+  estadosJefe() {
+    const e = [];
+    if (this.boss.weak > 0) {
+      e.push({ id: "weak", icono: "", texto: `Débil ${this.boss.weak}`, titulo: "Débil: inflige 25% menos de daño", clase: "debuff" });
+    }
+    if (this.boss.vulnerable > 0) {
+      e.push({ id: "vulnerable", icono: "", texto: `Vuln. ${this.boss.vulnerable}`, titulo: "Vulnerable: recibe 50% más de daño", clase: "vulnerable" });
+    }
+    if ((this.boss.poison || 0) > 0) {
+      e.push({ id: "poison", icono: "☠", texto: `${this.boss.poison}`, titulo: "Veneno: pierde vida al empezar su turno", clase: "veneno" });
+    }
+    return e;
+  }
+  // Colección del jugador: pila de robo + mano + descarte, ordenada por nombre
   // ---------- Baraja completa ----------
   // Colección del jugador: pila de robo + mano + descarte, ordenada por nombre
   obtenerBarajaCompleta() {

@@ -152,6 +152,29 @@ body::before {
   margin-left: 8px;
 }
 
+/* Insignias de poderes y temporales del jugador */
+.insignias { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
+.estado.poder {
+  background: #1a3a5c;
+  border: 1px solid #3b9eff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.estado.temp {
+  background: #3d2b12;
+  border: 1px solid #d4af37;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
 /* ---------- Entidades: sprite arriba, barra justo debajo ---------- */
 .entidad {
   display: flex;
