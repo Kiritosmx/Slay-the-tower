@@ -1348,22 +1348,25 @@ describe("Intencion reactiva y arrastre visible", () => {
     expect(contenedor.querySelector(".intencion-efectivo")).toBeNull();
   });
 
-  it("la carta arrastrada sube a capa fija por encima de todo", () => {
+  it("la carta se queda en la mano y solo sale la flecha", () => {
     ui.iniciarArrastre(0, 100, 600);
     const el = contenedor.querySelector(".carta.arrastrando");
     expect(el).toBeTruthy();
-    expect(el.style.position).toBe("fixed");
-    expect(el.style.zIndex).toBe("60");
+    expect(el.style.position).toBe("");
+    expect(el.style.transform).toBe("");
     ui.cancelarArrastre();
   });
 
-  it("la carta sigue al puntero con la flecha desde su centro", () => {
+  it("el origen de la flecha queda fijo en la mano y la punta sigue al cursor", () => {
     ui.iniciarArrastre(0, 100, 600);
     ui.moverArrastre(150, 400);
-    const el = contenedor.querySelector(".carta.arrastrando");
-    expect(el.style.transform).toContain("translate(50px, -200px)");
     expect(document.getElementById("flecha-objetivo")).toBeTruthy();
-    expect(contenedor.querySelector(".carta.arrastrando.fuera-marco")).toBeNull();
+    const svg1 = document.getElementById("flecha-objetivo").innerHTML;
+    ui.moverArrastre(200, 300);
+    const svg2 = document.getElementById("flecha-objetivo").innerHTML;
+    const inicio = (s) => s.split(" Q")[0];
+    expect(inicio(svg1)).toBe(inicio(svg2));
+    expect(svg2).toContain("200,300");
     ui.cancelarArrastre();
     expect(contenedor.querySelector(".carta.arrastrando")).toBeNull();
     expect(document.getElementById("flecha-objetivo")).toBeNull();
@@ -1426,7 +1429,7 @@ describe("Sin arrastre nativo del navegador", () => {
   });
 });
 
-describe("Flecha clavada al enemigo", () => {
+describe("Flecha con origen fijo en la mano", () => {
   let contenedor, ui, combat;
 
   beforeEach(() => {
@@ -1448,13 +1451,14 @@ describe("Flecha clavada al enemigo", () => {
     ui._rectJefe = { left: 0, top: 0, right: 200, bottom: 200 };
   });
 
-  it("sobre el jefe la punta se clava en su centro, no en el cursor", () => {
+  it("sobre el jefe la punta sigue al cursor y el jefe se ilumina", () => {
     ui.iniciarArrastre(0, 100, 600);
     ui.moverArrastre(50, 50);
     expect(ui.arrastre.sobreJefe).toBe(true);
     const svg = document.getElementById("flecha-objetivo").innerHTML;
-    expect(svg).toContain("100,100");
-    expect(svg).not.toContain("50,50");
+    expect(svg).toContain("50,50");
+    expect(contenedor.querySelector(".lado-jefe.apuntado")).toBeTruthy();
+    expect(document.getElementById("vista-previa")).toBeTruthy();
     ui.cancelarArrastre();
   });
 

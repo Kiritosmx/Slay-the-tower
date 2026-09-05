@@ -243,6 +243,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 07:45 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.30 kB JS / gzip 25.15 kB) | Confirmar reversión sin regresiones | TA | Hito ✅ |
 | 2026-09-05 08:00 | `src/ui.js`, `src/styles.css` | Flecha estilo original: sale de la carta, es gruesa con punta grande y al apuntar al jefe se clava en su centro (ya no flota en el cursor); cursor oculto durante el arrastre | Flecha hasta el objetivo | TA | Corrección |
 | 2026-09-05 08:05 | `tests/`, `dist/` | **Verificación de hito**: 109/109 pruebas OK + build OK (91.72 kB JS / gzip 25.29 kB) | Confirmar flecha sin regresiones | TA | Hito ✅ |
+| 2026-09-05 08:20 | `src/ui.js`, `src/styles.css` | Flecha como en el original: origen fijo en la carta de la mano (la carta se queda, solo se eleva), punta libre que sigue al cursor para elegir objetivo; se quita el clavado al enemigo | Origen fijo, punta libre | TA | Corrección |
+| 2026-09-05 08:25 | `tests/`, `dist/` | **Verificación de hito**: 109/109 pruebas OK + build OK (90.92 kB JS / gzip 25.00 kB) | Confirmar concepto sin regresiones | TA | Hito ✅ |
 
 ---
 

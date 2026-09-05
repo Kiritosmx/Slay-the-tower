@@ -467,23 +467,18 @@ export class UI {
     this.cancelarArrastre();
     this._limiteJuego = this.obtenerLimiteJuego();
     const el = this.root.querySelector(`.carta[data-indice="${indice}"]`);
-    // La carta se saca a capa fija por encima de todo para que nunca
-    // quede oculta bajo la batalla; la flecha saldrá de su centro.
-    let baseX = x, baseY = y, w = 150, h = 214;
+    // Como en el original: la carta se queda en la mano (ligeramente
+    // elevada) y la flecha sale fija desde su centro; la punta sigue al
+    // puntero para elegir el objetivo.
+    let baseX = x, baseY = y, w = 150, h = 184;
     if (el) {
       const r = el.getBoundingClientRect();
       if (r.width > 0) {
         baseX = r.left; baseY = r.top; w = r.width; h = r.height;
       }
       el.classList.add("arrastrando");
-      el.style.position = "fixed";
-      el.style.left = `${baseX}px`;
-      el.style.top = `${baseY}px`;
-      el.style.width = `${w}px`;
-      el.style.margin = "0";
-      el.style.zIndex = "60";
     }
-    this.arrastre = { indice, x0: x, y0: y, x, y, baseX, baseY, w, h, enZona: false, sobreJefe: false, origenX: baseX + w / 2, origenY: baseY + h / 2 };
+    this.arrastre = { indice, x0: x, y0: y, x, y, enZona: false, sobreJefe: false, origenX: baseX + w / 2, origenY: baseY + h / 2 };
     if (typeof document !== "undefined") document.body.classList.add("arrastrando-carta");
     this._dibujarFlecha();
     return true;
@@ -495,15 +490,6 @@ export class UI {
     this.arrastre.y = y;
     this.arrastre.enZona = y < this._limiteJuego;
     this.arrastre.sobreJefe = this.apuntandoAlJefe(x, y);
-    // La carta sigue al puntero y la flecha sale de su centro
-    this.arrastre.origenX = this.arrastre.baseX + (x - this.arrastre.x0) + this.arrastre.w / 2;
-    this.arrastre.origenY = this.arrastre.baseY + (y - this.arrastre.y0) + this.arrastre.h / 2;
-    const el = this.root.querySelector(`.carta[data-indice="${this.arrastre.indice}"]`);
-    if (el) {
-      const dx = x - this.arrastre.x0;
-      const dy = y - this.arrastre.y0;
-      el.style.transform = `translate(${dx}px, ${dy}px) scale(1.12) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
-    }
     this._dibujarFlecha();
     this._pintarObjetivo();
   }
@@ -598,15 +584,7 @@ export class UI {
       document.body.appendChild(this._capaFlecha);
     }
     const capa = this._capaFlecha;
-    const { origenX: x1, origenY: y1, enZona, sobreJefe } = this.arrastre;
-    // Como en el original: al apuntar al enemigo la punta se clava en su
-    // centro en vez de quedarse flotando en el cursor.
-    let x2 = this.arrastre.x;
-    let y2 = this.arrastre.y;
-    if (sobreJefe) {
-      const centro = this.centroJefe();
-      if (centro) { x2 = centro.x; y2 = centro.y; }
-    }
+    const { origenX: x1, origenY: y1, enZona, sobreJefe, x: x2, y: y2 } = this.arrastre;
     const mx = (x1 + x2) / 2;
     const color = enZona ? "#e8c84a" : "#8a94a0";
     const vw = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1280;
@@ -620,15 +598,6 @@ export class UI {
           fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
         <circle cx="${x1}" cy="${y1}" r="10" fill="${color}"/>
       </svg>`;
-  }
-
-  // Centro del jefe para clavar la flecha (respeta el stub de pruebas)
-  centroJefe() {
-    const r = this.rectJefe();
-    if (!r) return null;
-    const w = r.width ?? r.right - r.left;
-    const h = r.height ?? r.bottom - r.top;
-    return { x: r.left + w / 2, y: r.top + h / 2 };
   }
 
   _pintarObjetivo() {

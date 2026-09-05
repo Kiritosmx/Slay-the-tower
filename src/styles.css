@@ -461,6 +461,7 @@ body::before {
 
 .carta.arrastrando {
   animation: none;
+  transform: translateY(-14px) scale(1.06);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 22px rgba(232, 200, 74, 0.45);
   border-color: var(--dorado);
   cursor: grabbing;
