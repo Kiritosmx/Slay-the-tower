@@ -57,6 +57,75 @@ export class UI {
     this.root.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.arrastre) this.cancelarArrastre();
     });
+    // Descripción en español: hover con ratón y pulsación larga en táctil
+    this._temporizadorTooltip = null;
+    this._origenTooltip = null;
+    this.root.addEventListener("mouseover", (e) => {
+      const el = e.target.closest(".pila-vista[data-id]");
+      if (el) {
+        const r = el.getBoundingClientRect();
+        this._mostrarTooltip(el.dataset.id, r.left + r.width / 2, r.top);
+      }
+    });
+    this.root.addEventListener("mouseout", (e) => {
+      if (e.target.closest(".pila-vista[data-id]")) this._ocultarTooltip();
+    });
+    this.root.addEventListener("pointerdown", (e) => {
+      const el = e.target.closest(".pila-vista[data-id]");
+      if (!el) return;
+      const x = e.clientX, y = e.clientY;
+      this._origenTooltip = { x, y };
+      clearTimeout(this._temporizadorTooltip);
+      this._temporizadorTooltip = setTimeout(() => {
+        this._mostrarTooltip(el.dataset.id, x, y);
+      }, 450);
+    });
+    this.root.addEventListener("pointermove", (e) => {
+      if (!this._temporizadorTooltip || !this._origenTooltip) return;
+      if (Math.hypot(e.clientX - this._origenTooltip.x, e.clientY - this._origenTooltip.y) > 12) {
+        clearTimeout(this._temporizadorTooltip);
+        this._temporizadorTooltip = null;
+      }
+    });
+    const ocultarAlSoltar = () => {
+      clearTimeout(this._temporizadorTooltip);
+      this._temporizadorTooltip = null;
+      this._ocultarTooltip();
+    };
+    this.root.addEventListener("pointerup", ocultarAlSoltar);
+    this.root.addEventListener("pointercancel", ocultarAlSoltar);
+  }
+
+  // ---------- Tooltip de carta (descripción en español) ----------
+  _mostrarTooltip(cardId, x, y) {
+    if (typeof document === "undefined") return;
+    const card = CARDS[cardId];
+    if (!card) return;
+    this._ocultarTooltip();
+    const tip = document.createElement("div");
+    tip.id = "tooltip-carta";
+    tip.setAttribute("role", "tooltip");
+    tip.innerHTML = `
+      <div class="tooltip-nombre">${card.name}</div>
+      <div class="tooltip-tipo">⬢ ${card.cost} · ${card.type}</div>
+      <div class="tooltip-descripcion">${card.description}</div>`;
+    document.body.appendChild(tip);
+    const w = tip.offsetWidth || 220;
+    const h = tip.offsetHeight || 120;
+    const vw = window.innerWidth || 1280;
+    const vh = window.innerHeight || 800;
+    let izq = Math.max(8, Math.min(x - w / 2, vw - w - 8));
+    let arriba = y - h - 12;
+    if (arriba < 8) arriba = Math.min(y + 20, vh - h - 8);
+    tip.style.left = `${izq}px`;
+    tip.style.top = `${Math.max(8, arriba)}px`;
+  }
+
+  _ocultarTooltip() {
+    if (typeof document === "undefined") return;
+    clearTimeout(this._temporizadorTooltip);
+    this._temporizadorTooltip = null;
+    document.getElementById("tooltip-carta")?.remove();
   }
 
   setCargador(cargador) {
@@ -404,6 +473,7 @@ export class UI {
     this.modalAbierto = false;
     this.vistaModal = null;
     this.mejoraSel = null;
+    this._ocultarTooltip();
     this.render();
     const btn = this.root.querySelector("#btn-baraja");
     if (btn) btn.focus();
@@ -734,14 +804,10 @@ export class UI {
           </div>
           <div class="modal-grupos">
             ${cartas.length === 0 ? `<p class="pila-vacia">${vacio}</p>` : `
-            <div class="modal-cartas">
+            <div class="modal-cartas modal-pila-cartas">
               ${cartas.map((card, ci) => `
-              <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
-                <div class="carta-costo">${card.cost}</div>
-                <div class="carta-nombre">${card.name}</div>
+              <div class="carta carta-vista pila-vista" data-id="${card.id}" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
                 <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
-                <div class="carta-tipo">${card.type}</div>
-                <div class="carta-descripcion">${card.description}</div>
               </div>`).join("")}
             </div>`}
           </div>
@@ -762,8 +828,10 @@ export class UI {
         if (e.target === modal) this.cerrarModal();
       });
       modal.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") this.cerrarModal();
+        if (e.key === "Escape") { this._ocultarTooltip(); this.cerrarModal(); }
       });
+      const grupos = modal.querySelector(".modal-grupos");
+      if (grupos) grupos.addEventListener("scroll", () => this._ocultarTooltip(), { passive: true });
     }
   }
 

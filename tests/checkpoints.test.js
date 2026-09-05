@@ -1639,3 +1639,63 @@ describe("Insignias de todos los efectos", () => {
     contenedor.remove();
   });
 });
+
+describe("Pilas iguales que la mano + descripcion", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+  });
+
+  it("las pilas muestran solo el arte oficial como la mano", () => {
+    combat.discard.push("strike", "defend");
+    ui.setCombat(combat);
+    ui.abrirModalDescarte();
+    const cartas = contenedor.querySelectorAll("#modal-descarte .carta-vista");
+    expect(cartas.length).toBe(combat.discard.length);
+    for (const el of cartas) {
+      expect(el.querySelector("img").getAttribute("src")).toContain("/cartas/");
+      expect(el.querySelector(".carta-descripcion")).toBeNull();
+      expect(el.querySelector(".carta-nombre")).toBeNull();
+    }
+    ui.cerrarModal();
+  });
+
+  it("pasar el raton muestra la descripcion en espanol", () => {
+    combat.discard.push("strike");
+    ui.setCombat(combat);
+    ui.abrirModalDescarte();
+    const el = contenedor.querySelector("#modal-descarte .pila-vista");
+    el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    const tip = document.getElementById("tooltip-carta");
+    expect(tip).toBeTruthy();
+    expect(tip.textContent).toContain("Golpe");
+    expect(tip.textContent).toContain("Inflige 6");
+    el.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+    expect(document.getElementById("tooltip-carta")).toBeNull();
+    ui.cerrarModal();
+  });
+
+  it("el tooltip se posiciona y se oculta a peticion", () => {
+    ui._mostrarTooltip("defend", 400, 300);
+    const tip = document.getElementById("tooltip-carta");
+    expect(tip).toBeTruthy();
+    expect(tip.textContent).toContain("Defensa");
+    expect(tip.textContent).toContain("Bloqueo");
+    ui._ocultarTooltip();
+    expect(document.getElementById("tooltip-carta")).toBeNull();
+    ui._mostrarTooltip("inexistente", 10, 10);
+    expect(document.getElementById("tooltip-carta")).toBeNull();
+  });
+});

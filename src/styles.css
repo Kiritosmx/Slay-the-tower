@@ -1069,6 +1069,51 @@ body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
   .modal-cartas { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
 }
 
+/* ---------- Pilas: arte oficial igual que la mano ---------- */
+.modal-pila-cartas .carta {
+  width: 132px;
+  min-width: 132px;
+  height: auto;
+  background: none;
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.modal-pila-cartas .carta img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 734 / 916;
+  margin: 0;
+  border-radius: 11px;
+  border: none;
+  outline: none;
+  background: #10151b;
+}
+
+.modal-pila-cartas .carta:hover { border-color: var(--dorado); }
+
+/* ---------- Tooltip de carta (descripción en español) ---------- */
+#tooltip-carta {
+  position: fixed;
+  z-index: 80;
+  width: 230px;
+  max-width: calc(100vw - 16px);
+  background: linear-gradient(180deg, #f2e8cd 0%, #e2d3a8 100%);
+  color: #2b2118;
+  border: 2px solid #8a7648;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  animation: aparecer 0.15s ease;
+}
+
+.tooltip-nombre { font-weight: 800; font-size: 14px; text-align: center; }
+.tooltip-tipo { text-align: center; font-size: 11px; font-weight: 700; color: #5a4a28; padding: 2px 0 6px; }
+.tooltip-descripcion { font-size: 12px; line-height: 1.35; text-align: center; }
+
 /* ---------- Táctil: sin doble-toque con zoom ni scroll encadenado ---------- */
 button { touch-action: manipulation; }
 .cartas { overscroll-behavior-x: contain; }
