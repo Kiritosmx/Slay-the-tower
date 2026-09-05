@@ -46,6 +46,8 @@ export class UI {
     this._soltarRef = (e) => this._alSoltarPuntero(e);
     // Listeners persistentes (sobreviven a los re-renders del innerHTML)
     this.root.addEventListener("pointerdown", (e) => this._alPulsarCarta(e));
+    // Cinturón y tirantes: ningún fantasma de arrastre nativo en la app
+    this.root.addEventListener("dragstart", (e) => e.preventDefault());
     this.root.addEventListener("contextmenu", (e) => {
       if (e.target.closest(".carta[data-indice]")) {
         e.preventDefault();
@@ -109,7 +111,7 @@ export class UI {
         <section class="campo campo-escena">
           <div class="lado-jugador">
             <div class="entidad jugador" data-entidad="jugador">
-              <img class="sprite sprite-jugador" src="${PLAYER.image}" alt="${c.player.name}" />
+              <img draggable="false" class="sprite sprite-jugador" src="${PLAYER.image}" alt="${c.player.name}" />
               <div class="entidad-info">
                 <div class="entidad-nombre">${c.player.name}
                   ${c.player.weak > 0 ? `<span class="estado debuff" title="Débil: tus ataques infligen 25% menos">Débil ${c.player.weak}</span>` : ""}
@@ -132,7 +134,7 @@ export class UI {
             </div>`;
             })()}
             <div class="entidad jefe" data-entidad="jefe">
-              <img class="sprite sprite-jefe${c.boss.escena ? " fondo-escena" : ""}" src="${imagenResiliente(this.cargador, c.boss.image)}" alt="${c.boss.name}" />
+              <img draggable="false" class="sprite sprite-jefe${c.boss.escena ? " fondo-escena" : ""}" src="${imagenResiliente(this.cargador, c.boss.image)}" alt="${c.boss.name}" />
               <div class="entidad-info">
                 <div class="entidad-nombre">${c.boss.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}${c.boss.vulnerable > 0 ? `<span class="estado vulnerable" title="Vulnerable: recibe 50% más de daño">Vuln. ${c.boss.vulnerable}</span>` : ""}${(c.boss.poison || 0) > 0 ? `<span class="estado veneno" title="Veneno: pierde vida al empezar su turno">☠ ${c.boss.poison}</span>` : ""}</div>
                 ${barraVida(c.boss, true)}
@@ -161,7 +163,7 @@ export class UI {
                   const jugable = c.puedeJugar(cardId);
                   return `
                   <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}" data-tipo="${card.type}">
-                    <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" />
+                    <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" />
                   </div>`;
                 })
                 .join("")}
@@ -343,14 +345,14 @@ export class UI {
             ${sel && plus ? `
             <div class="preview-col">
               <h4>${sel.name}</h4>
-              <img src="${imagenResiliente(this.cargador, sel.image)}" alt="${sel.name}" loading="lazy" decoding="async" />
+              <img draggable="false" src="${imagenResiliente(this.cargador, sel.image)}" alt="${sel.name}" loading="lazy" decoding="async" />
               <div class="preview-costo">⬢ ${sel.cost}</div>
               <p>${sel.description}</p>
             </div>
             <div class="preview-flecha" aria-hidden="true">→</div>
             <div class="preview-col preview-plus">
               <h4>${plus.name}</h4>
-              <img src="${imagenResiliente(this.cargador, plus.image)}" alt="${plus.name}" loading="lazy" decoding="async" />
+              <img draggable="false" src="${imagenResiliente(this.cargador, plus.image)}" alt="${plus.name}" loading="lazy" decoding="async" />
               <div class="preview-costo">⬢ ${plus.cost}</div>
               <p>${plus.description}</p>
             </div>` : `<p class="mejora-ayuda">Selecciona una carta para ver su versión mejorada.</p>`}
@@ -386,7 +388,7 @@ export class UI {
               <div class="carta carta-vista carta-elegible" data-ipesadilla="${i}" data-tipo="${card.type}" role="button" tabindex="0" aria-label="Elegir ${card.name}">
                 <div class="carta-costo">${card.cost}</div>
                 <div class="carta-nombre">${card.name}</div>
-                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+                <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
                 <div class="carta-tipo">${card.type}</div>
                 <div class="carta-descripcion">${card.description}</div>
               </div>`;
@@ -419,6 +421,8 @@ export class UI {
     if (e.button !== 0 && e.pointerType !== "touch") return;
     const el = e.target.closest(".carta[data-indice]");
     if (!el || this.modalAbierto || !this.combat || this.combat.pendingDiscard || this.combat.mejoraPendiente || this.combat.pendingNightmare || this.combat.over) return;
+    // Frena el arrastre nativo del navegador (fantasma de la imagen)
+    e.preventDefault();
     this._posibleArrastre = { indice: Number(el.dataset.indice), x0: e.clientX, y0: e.clientY };
     if (typeof window !== "undefined") {
       window.addEventListener("pointermove", this._moverRef);
@@ -672,7 +676,7 @@ export class UI {
               const card = CARDS[cardId];
               return `
               <button class="carta-recompensa" data-id="${cardId}" aria-label="Elegir ${card.name}: ${card.description}">
-                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" loading="lazy" decoding="async" />
+                <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" loading="lazy" decoding="async" />
               </button>`;
             }).join("")}
           </div>
@@ -710,7 +714,7 @@ export class UI {
             <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
               <div class="carta-costo">${card.cost}</div>
               <div class="carta-nombre">${card.name}</div>
-              <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+              <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
               <div class="carta-tipo">${card.type}</div>
               <div class="carta-descripcion">${card.description}</div>
             </div>`
@@ -758,7 +762,7 @@ export class UI {
               <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
                 <div class="carta-costo">${card.cost}</div>
                 <div class="carta-nombre">${card.name}</div>
-                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
+                <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
                 <div class="carta-tipo">${card.type}</div>
                 <div class="carta-descripcion">${card.description}</div>
               </div>`).join("")}

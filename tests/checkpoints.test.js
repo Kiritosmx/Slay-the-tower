@@ -1387,3 +1387,45 @@ describe("Intencion reactiva y arrastre visible", () => {
     }
   });
 });
+
+describe("Sin arrastre nativo del navegador", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+  });
+
+  it("las imagenes de la mano no son arrastrables por el navegador", () => {
+    const imgs = contenedor.querySelectorAll(".mano .carta img");
+    expect(imgs.length).toBeGreaterThan(0);
+    for (const img of imgs) {
+      expect(img.getAttribute("draggable")).toBe("false");
+    }
+  });
+
+  it("pulsar una carta frena el gesto nativo y arma el arrastre propio", () => {
+    const el = contenedor.querySelector(".mano .carta[data-indice]");
+    const ev = new MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: 50, clientY: 600, button: 0 });
+    el.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(ui._posibleArrastre).toBeTruthy();
+  });
+
+  it("el evento dragstart queda anulado en la app", () => {
+    const el = contenedor.querySelector(".mano .carta img");
+    const ev = new Event("dragstart", { bubbles: true, cancelable: true });
+    el.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+});

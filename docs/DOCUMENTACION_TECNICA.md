@@ -237,6 +237,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 06:35 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.35 kB JS / gzip 25.17 kB) | Confirmar recompensa sin regresiones | TA | Hito ✅ |
 | 2026-09-05 07:00 | `src/ui.js`, `src/styles.css` | Mano con arte oficial solo-imagen (150px, sin marco duplicado); arrastre como antes (carta visible a 1.12) con fundido a flecha al salir del marco (transición + flecha intensa con brillo) | Mano fiel y arrastre fluido | TA | Alto |
 | 2026-09-05 07:05 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.59 kB JS / gzip 25.27 kB) | Confirmar mano+arrastre sin regresiones | TA | Hito ✅ |
+| 2026-09-05 07:20 | `src/ui.js`, `src/styles.css` | Arrastre nativo del navegador desactivado (`draggable=false` en las 9 imágenes, `preventDefault` en pointerdown, `dragstart` anulado, `user-drag:none`); el gesto vuelve al arrastre propio | Se puede volver a jugar | TA | **Crítico** |
+| 2026-09-05 07:25 | `tests/`, `dist/` | **Verificación de hito**: 106/106 pruebas OK + build OK (91.83 kB JS / gzip 25.30 kB) | Confirmar gesto sin regresiones | TA | Hito ✅ |
 
 ---
 

@@ -429,6 +429,17 @@ body::before {
   border: 3px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
   overflow: visible;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mano .carta img,
+.carta img,
+.carta-recompensa img,
+.preview-col img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .mano .carta img {
