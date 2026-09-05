@@ -156,7 +156,7 @@ export class UI {
           </button>
           <section class="mano" data-modo="${c.pendingDiscard ? "descarte" : "normal"}">
             ${c.pendingDiscard ? `<div class="mano-aviso">Selecciona una carta para descartar</div>` : ""}
-            <div class="cartas">
+            <div class="cartas" data-n="${c.hand.length}">
               ${c.hand
                 .map((cardId, i) => {
                   const card = CARDS[cardId];
@@ -586,17 +586,28 @@ export class UI {
     const capa = this._capaFlecha;
     const { origenX: x1, origenY: y1, enZona, sobreJefe, x: x2, y: y2 } = this.arrastre;
     const mx = (x1 + x2) / 2;
+    const my = Math.min(y1, y2) - 60;
     const color = enZona ? "#e8c84a" : "#8a94a0";
     const vw = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1280;
     const vh = typeof window !== "undefined" && window.innerHeight ? window.innerHeight : 800;
+    // Punta dibujada a mano (polígono orientado según la tangente final):
+    // sin dependencias de marcadores, siempre visible y bien grande.
+    const tx = x2 - mx;
+    const ty = y2 - my;
+    const len = Math.hypot(tx, ty) || 1;
+    const ux = tx / len;
+    const uy = ty / len;
+    const px = -uy;
+    const py = ux;
+    const L = 30;
+    const A = 13;
+    const punta = `${x2},${y2} ${x2 - ux * L + px * A},${y2 - uy * L + py * A} ${x2 - ux * L - px * A},${y2 - uy * L - py * A}`;
     capa.innerHTML = `
       <svg viewBox="0 0 ${vw} ${vh}" width="${vw}" height="${vh}">
-        <defs><marker id="punta-flecha" markerWidth="14" markerHeight="14" refX="10" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-          <path d="M0,0 L12,5 L0,10 Z" fill="${color}"></path>
-        </marker></defs>
-        <path d="M${x1},${y1} Q${mx},${Math.min(y1, y2) - 60} ${x2},${y2}"
-          fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
-        <circle cx="${x1}" cy="${y1}" r="10" fill="${color}"/>
+        <path d="M${x1},${y1} Q${mx},${my} ${x2},${y2}"
+          fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
+        <polygon points="${punta}" fill="${color}"/>
+        <circle cx="${x1}" cy="${y1}" r="6" fill="${color}"/>
       </svg>`;
   }
 

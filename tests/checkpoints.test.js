@@ -1477,3 +1477,49 @@ describe("Flecha con origen fijo en la mano", () => {
     expect(document.body.classList.contains("arrastrando-carta")).toBe(false);
   });
 });
+
+describe("Punta de flecha y mano compacta", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+    ui._forzarLimite = 500;
+  });
+
+  it("la punta es un poligono orientado, sin marcador", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.moverArrastre(300, 200);
+    const svg = document.getElementById("flecha-objetivo").innerHTML;
+    expect(svg).toContain("<polygon");
+    expect(svg).not.toContain("marker");
+    ui.cancelarArrastre();
+  });
+
+  it("la mano informa su tamano para compactarse", () => {
+    expect(contenedor.querySelector(".cartas").getAttribute("data-n")).toBe("5");
+    combat.hand = Array(8).fill("strike");
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".cartas").getAttribute("data-n")).toBe("8");
+  });
+
+  it("con 10 cartas la mano sigue cabiendo con descarte visible", () => {
+    combat.hand = Array(10).fill("strike");
+    ui.setCombat(combat);
+    expect(contenedor.querySelectorAll(".mano .carta")).toHaveLength(10);
+    expect(contenedor.querySelector("#btn-descarte .pila-contador")).toBeTruthy();
+    expect(contenedor.querySelector("#btn-fin-turno")).toBeTruthy();
+  });
+});

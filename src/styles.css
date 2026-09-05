@@ -280,17 +280,20 @@ body::before {
 .barra-inferior {
   display: flex;
   align-items: stretch;
+  flex-wrap: nowrap;
   gap: 12px;
   background: rgba(5, 8, 12, 0.78);
   border: 1px solid var(--borde);
   border-radius: 14px;
   padding: 10px 12px;
   backdrop-filter: blur(3px);
+  touch-action: manipulation;
 }
 
 .orbe-energia {
   width: 92px;
   min-width: 92px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #9fd8ff 0%, #3b9eff 35%, #123a63 75%, #0a2038 100%);
   border: 3px solid #bfe0ff;
@@ -310,6 +313,8 @@ body::before {
 .pila {
   width: 96px;
   min-width: 96px;
+  flex-shrink: 0;
+  min-height: 72px;
   border-radius: 10px;
   background: linear-gradient(180deg, #232d38, #12181f);
   border: 2px solid var(--borde);
@@ -345,7 +350,7 @@ body::before {
 }
 
 /* ---------- Botón fin de turno ---------- */
-.zona-fin { display: flex; align-items: center; }
+.zona-fin { display: flex; align-items: center; flex-shrink: 0; }
 .btn-fin-turno {
   background: linear-gradient(180deg, #c9a227, #8b6508);
   color: #fff;
@@ -363,7 +368,32 @@ body::before {
 .btn-fin-turno:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ---------- Mano de cartas ---------- */
-.mano { flex: 1; min-height: 220px; display: flex; flex-direction: column; justify-content: flex-end; }
+.mano { flex: 1 1 auto; min-width: 0; min-height: 220px; display: flex; flex-direction: column; justify-content: flex-end; }
+
+/* Mano en abanico: las cartas se solapan para que el HUD (orbe, pilas y
+   fin de turno) siempre quepa, haya 5 o 10 cartas en mano */
+.cartas {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  gap: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 18px 8px 8px;
+  scrollbar-width: thin;
+}
+
+.cartas .carta { flex-shrink: 0; }
+.cartas .carta + .carta { margin-left: -58px; }
+
+/* Con muchas cartas se encogen un poco para seguir cabiendo */
+.mano .cartas[data-n="6"] .carta, .mano .cartas[data-n="7"] .carta { width: 132px; min-width: 132px; }
+.mano .cartas[data-n="8"] .carta, .mano .cartas[data-n="9"] .carta,
+.mano .cartas[data-n="10"] .carta { width: 114px; min-width: 114px; }
+.mano .cartas[data-n="6"] .carta + .carta, .mano .cartas[data-n="7"] .carta + .carta { margin-left: -64px; }
+.mano .cartas[data-n="8"] .carta + .carta, .mano .cartas[data-n="9"] .carta + .carta,
+.mano .cartas[data-n="10"] .carta + .carta { margin-left: -62px; }
 
 .mano-aviso {
   text-align: center;
@@ -371,16 +401,6 @@ body::before {
   font-weight: 700;
   margin-bottom: 8px;
   animation: aparecer 0.3s ease;
-}
-
-.cartas {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 10px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 14px 4px 4px;
 }
 
 .carta {
@@ -927,11 +947,28 @@ body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
 /* ---------- Responsive: móviles ---------- */
 @media (max-width: 600px) {
   :root { --sprite-w: 100px; --sprite-h: 130px; }
-  .barra-superior { flex-direction: column; align-items: stretch; }
-  .campo-escena { flex-direction: row; gap: 8px; }
-  .barra-vida { width: 150px; height: 20px; }
-  .orbe-energia { width: 72px; min-width: 72px; }
-  .orbe-valor { font-size: 17px; }
+  .combate { padding: 8px 8px 12px; gap: 8px; }
+  .barra-superior { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 10px; }
+  .ficha-nombre { font-size: 14px; }
+  .campo-escena { flex-direction: row; gap: 8px; min-height: 30vh; }
+  .entidad-nombre { font-size: 14px; }
+  .intencion { font-size: 12px; padding: 6px 10px; max-width: 52vw; }
+  .intencion-efectivo { font-size: 13px; }
+  .barra-vida { width: 150px; max-width: 40vw; height: 20px; }
+  .barra-inferior { gap: 8px; padding: 8px; }
+  .orbe-energia { width: 64px; min-width: 64px; }
+  .orbe-valor { font-size: 16px; }
+  .orbe-nombre { font-size: 9px; }
+  .pila { width: 64px; min-width: 64px; min-height: 64px; }
+  .pila-icono { font-size: 24px; }
+  .pila-nombre { font-size: 10px; }
+  .zona-fin { flex: 1 1 auto; }
+  .btn-fin-turno { min-width: 0; width: 100%; font-size: 14px; padding: 12px 8px; }
+  .mano { min-height: 190px; }
+  .mano .carta + .carta { margin-left: -66px; }
+  .carta { width: 118px; min-width: 118px; height: 178px; }
+  .mano .carta { width: 118px; min-width: 118px; }
+  .carta-recompensa img { width: 160px; }
   .pila { width: 76px; min-width: 76px; }
   .carta { width: 118px; min-width: 118px; height: 178px; }
   .mano .carta { width: 118px; min-width: 118px; }
@@ -944,7 +981,36 @@ body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
   .modal-cartas { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
   .resumen-item { font-size: 11.5px; }
   .btn-baraja { font-size: 13px; padding: 9px 10px; }
+  .mensaje-recompensa { font-size: 26px; }
+  .recompensa-cartas { gap: 12px; }
 }
+
+/* ---------- Responsive: teléfonos pequeños ---------- */
+@media (max-width: 420px) {
+  :root { --sprite-w: 84px; --sprite-h: 110px; }
+  .barra-vida { width: 128px; }
+  .entidad-nombre { font-size: 13px; }
+  .orbe-energia { width: 58px; min-width: 58px; border-width: 2px; }
+  .orbe-valor { font-size: 14px; }
+  .pila { width: 58px; min-width: 58px; min-height: 60px; }
+  .pila-icono { font-size: 22px; }
+  .mano .carta { width: 104px; min-width: 104px; }
+  .mano .carta + .carta { margin-left: -58px; }
+  .carta-recompensa img { width: 148px; }
+  .mensaje-fin { font-size: 32px; }
+}
+
+/* ---------- Responsive: pantallas apaisadas bajas ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --sprite-w: 90px; --sprite-h: 115px; }
+  .campo-escena { min-height: 0; }
+  .mano { min-height: 150px; }
+  .combate { gap: 6px; }
+}
+
+/* ---------- Táctil: sin doble-toque con zoom ni scroll encadenado ---------- */
+button { touch-action: manipulation; }
+.cartas { overscroll-behavior-x: contain; }
 
 /* ---------- Accesibilidad: menos movimiento ---------- */
 @media (prefers-reduced-motion: reduce) {
