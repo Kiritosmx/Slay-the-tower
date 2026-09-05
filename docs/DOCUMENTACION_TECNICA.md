@@ -247,6 +247,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 08:25 | `tests/`, `dist/` | **Verificación de hito**: 109/109 pruebas OK + build OK (90.92 kB JS / gzip 25.00 kB) | Confirmar concepto sin regresiones | TA | Hito ✅ |
 | 2026-09-05 08:40 | `src/ui.js`, `src/styles.css` | Punta de flecha como polígono orientado (sin marcador, siempre visible y grande); mano en abanico solapado con `data-n` que encoge a 6+/8+ cartas (orbe, robo, fin y descarte siempre caben); responsive 420px, apaisado bajo, táctil sin zoom fantasma | Punta real + HUD adaptable + móvil | TA | Alto |
 | 2026-09-05 08:45 | `tests/`, `dist/` | **Verificación de hito**: 112/112 pruebas OK + build OK (90.87 kB JS / gzip 24.99 kB) | Confirmar punta+HUD+móvil sin regresiones | TA | Hito ✅ |
+| 2026-09-05 09:00 | `src/styles.css` | Horizontal real (apaisado ≤500px alto): barra fina en fila, sprites 76px, escena sin altura mínima, barra inferior en una fila con mano flexible y cartas de 92px, recompensa y modales compactos | Se juega en horizontal | TA | Medio |
+| 2026-09-05 09:05 | `tests/`, `dist/` | **Verificación de hito**: 112/112 pruebas OK + build OK (90.87 kB JS / gzip 24.99 kB) | Confirmar horizontal sin regresiones | TA | Hito ✅ |
 
 ---
 

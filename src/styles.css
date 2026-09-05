@@ -1000,12 +1000,50 @@ body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
   .mensaje-fin { font-size: 32px; }
 }
 
-/* ---------- Responsive: pantallas apaisadas bajas ---------- */
-@media (max-height: 500px) and (orientation: landscape) {
-  :root { --sprite-w: 90px; --sprite-h: 115px; }
-  .campo-escena { min-height: 0; }
-  .mano { min-height: 150px; }
-  .combate { gap: 6px; }
+/* ---------- Responsive: pantallas apaisadas bajas (móvil horizontal) ----------
+   Todo en una fila compacta: barra fina, escena baja y mano flexible */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --sprite-w: 76px; --sprite-h: 96px; }
+  .combate { padding: 6px 10px 8px; gap: 6px; }
+  .barra-superior { flex-direction: row; align-items: center; gap: 8px; padding: 4px 10px; }
+  .ficha-nombre { font-size: 13px; }
+  .ficha-hp { font-size: 12px; }
+  .piso-turno { font-size: 12px; gap: 8px; }
+  .botones-accion { flex-direction: row; align-items: center; }
+  .btn-baraja { width: auto; font-size: 12px; padding: 6px 10px; }
+  .btn-sonido { font-size: 14px; padding: 4px 8px; }
+  .accion { display: none; }
+  .campo-escena { min-height: 0; padding: 0 4px; gap: 10px; }
+  .lado-jugador, .lado-jefe { gap: 4px; }
+  .entidad { padding-bottom: 10px; }
+  .entidad-nombre { font-size: 13px; }
+  .intencion { font-size: 11px; padding: 4px 8px; gap: 6px; }
+  .intencion-icono { font-size: 15px; }
+  .intencion-efectivo { font-size: 12px; }
+  .barra-vida { width: 150px; height: 18px; }
+  .barra-vida span { font-size: 11px; }
+  .escudo-bloqueo { min-width: 30px; height: 30px; font-size: 11px; }
+  .barra-inferior { flex-wrap: nowrap; gap: 8px; padding: 6px 8px; }
+  .mano { flex: 1 1 auto; order: 0; flex-basis: auto; min-width: 0; min-height: 0; }
+  .mano-aviso { font-size: 12px; margin-bottom: 4px; }
+  .cartas { padding: 10px 4px 4px; }
+  .mano .carta { width: 92px; min-width: 92px; }
+  .mano .carta + .carta { margin-left: -52px; }
+  .orbe-energia { width: 56px; min-width: 56px; border-width: 2px; }
+  .orbe-valor { font-size: 13px; }
+  .orbe-nombre { font-size: 8px; }
+  .pila { width: 56px; min-width: 56px; min-height: 56px; }
+  .pila-icono { font-size: 20px; }
+  .pila-nombre { font-size: 9px; }
+  .pila-contador { min-width: 22px; height: 22px; font-size: 11px; }
+  .zona-fin { flex-shrink: 0; }
+  .btn-fin-turno { min-width: 0; width: auto; font-size: 12px; padding: 10px 14px; }
+  .mensaje-fin { font-size: 30px; gap: 14px; }
+  .mensaje-recompensa { font-size: 22px; }
+  .recompensa-sub { font-size: 14px; }
+  .carta-recompensa img { width: 130px; }
+  .modal-contenido { max-height: calc(100vh - 16px); padding: 10px; }
+  .modal-cartas { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
 }
 
 /* ---------- Táctil: sin doble-toque con zoom ni scroll encadenado ---------- */
