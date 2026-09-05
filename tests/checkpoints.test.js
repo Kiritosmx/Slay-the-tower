@@ -1378,5 +1378,9 @@ describe("Intencion reactiva y arrastre visible", () => {
     expect(contenedor.querySelector(".overlay-recompensa")).toBeTruthy();
     const cartas = contenedor.querySelectorAll("#recompensa .carta-recompensa");
     expect(cartas).toHaveLength(3);
+    for (const el of cartas) {
+      expect(el.querySelector("img").getAttribute("src")).toContain("/cartas/");
+      expect(el.querySelector(".carta-descripcion")).toBeNull();
+    }
   });
 });

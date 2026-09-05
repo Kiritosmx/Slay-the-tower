@@ -586,22 +586,30 @@ body::before {
   flex-wrap: wrap;
 }
 
-/* Recompensa en grande: cartas legibles sin zoom */
-.overlay-recompensa .carta {
-  width: 190px;
-  min-width: 190px;
-  height: 264px;
+/* Recompensa: solo el arte oficial, grande y ajustado */
+.carta-recompensa {
+  background: none;
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s, box-shadow 0.15s;
 }
 
-.overlay-recompensa .carta img { height: 112px; }
-.overlay-recompensa .carta-nombre { font-size: 15px; }
-.overlay-recompensa .carta-descripcion { font-size: 12px; }
+.carta-recompensa img {
+  display: block;
+  width: 230px;
+  max-width: 58vw;
+  aspect-ratio: 734 / 916;
+  object-fit: contain;
+  border-radius: 13px;
+  background: #10151b;
+}
 
-.carta-recompensa { cursor: pointer; }
 .carta-recompensa:hover, .carta-recompensa:focus-visible {
-  transform: translateY(-10px) scale(1.05);
+  transform: translateY(-10px) scale(1.03);
   border-color: var(--dorado);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.75), 0 0 18px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75), 0 0 22px rgba(212, 175, 55, 0.45);
   outline: none;
 }
 
@@ -886,8 +894,7 @@ body::before {
   .orbe-valor { font-size: 17px; }
   .pila { width: 76px; min-width: 76px; }
   .carta { width: 118px; min-width: 118px; height: 178px; }
-  .overlay-recompensa .carta { width: 150px; min-width: 150px; height: 214px; }
-  .overlay-recompensa .carta img { height: 86px; }
+  .carta-recompensa img { width: 160px; }
   .carta img { height: 62px; }
   .carta-descripcion { font-size: 10px; }
   .modal-contenido { width: calc(100vw - 16px); max-height: calc(100vh - 24px); padding: 10px; }

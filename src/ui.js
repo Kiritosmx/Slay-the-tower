@@ -654,13 +654,9 @@ export class UI {
             ${c.recompensa.map((cardId) => {
               const card = CARDS[cardId];
               return `
-              <div class="carta carta-recompensa" data-id="${cardId}" data-tipo="${card.type}" role="button" tabindex="0" aria-label="Elegir ${card.name}">
-                <div class="carta-costo">${card.cost}</div>
-                <div class="carta-nombre">${card.name}</div>
-                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
-                <div class="carta-tipo">${card.type}</div>
-                <div class="carta-descripcion">${card.description}</div>
-              </div>`;
+              <button class="carta-recompensa" data-id="${cardId}" aria-label="Elegir ${card.name}: ${card.description}">
+                <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" loading="lazy" decoding="async" />
+              </button>`;
             }).join("")}
           </div>
         </div>

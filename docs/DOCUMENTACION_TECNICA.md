@@ -233,6 +233,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 06:05 | `src/combat.js`, `src/ui.js`, `src/styles.css` | `valorIntencionEfectivo()` (Débil −25% en atacar/aplastar/romper); intención debilitada con `→ N` pulsante; insignias de Vulnerable y Veneno en el jefe | Ataque previsto reactivo | TA | Alto |
 | 2026-09-05 06:10 | `tests/checkpoints.test.js` | +6 pruebas (97→103): efectivo con/sin Débil, insignias, carta en capa fija, difuminado al apuntar, recompensa grande | Cobertura visual | TA | Medio |
 | 2026-09-05 06:15 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK (×3) + build OK (91.59 kB JS / gzip 25.17 kB) | Confirmar visuales sin regresiones | TA | Hito ✅ |
+| 2026-09-05 06:30 | `src/ui.js`, `src/styles.css` | Recompensa solo-imagen: se elimina el marco propio (duplicaba el arte oficial) y se muestra el PNG tal cual a 230px con tooltip del efecto en español | Carta completa y ampliada | TA | Medio |
+| 2026-09-05 06:35 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.35 kB JS / gzip 25.17 kB) | Confirmar recompensa sin regresiones | TA | Hito ✅ |
 
 ---
 
