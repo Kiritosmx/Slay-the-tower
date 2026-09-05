@@ -118,6 +118,40 @@ body::before {
 .intencion-icono { font-size: 22px; }
 .intencion-texto { color: var(--dorado); font-weight: 600; }
 
+/* Intención debilitada: el ataque previsto baja y pulsa */
+.intencion.debilitada {
+  border-color: rgba(110, 200, 130, 0.7);
+  background: rgba(110, 200, 130, 0.12);
+  animation: latidoDebil 1.2s ease-in-out infinite;
+}
+
+.intencion-efectivo {
+  color: #8fe3a8;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+@keyframes latidoDebil {
+  0%, 100% { box-shadow: 0 0 0 rgba(110, 200, 130, 0); }
+  50% { box-shadow: 0 0 14px rgba(110, 200, 130, 0.55); }
+}
+
+.estado.vulnerable {
+  background: #5b2b8f;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.estado.veneno {
+  background: #2d6a2d;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
 /* ---------- Entidades: sprite arriba, barra justo debajo ---------- */
 .entidad {
   display: flex;
@@ -400,7 +434,7 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 45;
+  z-index: 55;
 }
 
 .lado-jefe { position: relative; }
@@ -536,7 +570,7 @@ body::before {
 /* ---------- Recompensa de victoria (elige 1 de 3) ---------- */
 .overlay-recompensa { z-index: 55; }
 
-.mensaje-recompensa { font-size: 34px; max-width: min(720px, calc(100vw - 32px)); }
+.mensaje-recompensa { font-size: 34px; max-width: min(920px, calc(100vw - 32px)); }
 
 .recompensa-sub {
   font-size: 17px;
@@ -548,9 +582,20 @@ body::before {
 .recompensa-cartas {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 22px;
   flex-wrap: wrap;
 }
+
+/* Recompensa en grande: cartas legibles sin zoom */
+.overlay-recompensa .carta {
+  width: 190px;
+  min-width: 190px;
+  height: 264px;
+}
+
+.overlay-recompensa .carta img { height: 112px; }
+.overlay-recompensa .carta-nombre { font-size: 15px; }
+.overlay-recompensa .carta-descripcion { font-size: 12px; }
 
 .carta-recompensa { cursor: pointer; }
 .carta-recompensa:hover, .carta-recompensa:focus-visible {
@@ -841,6 +886,8 @@ body::before {
   .orbe-valor { font-size: 17px; }
   .pila { width: 76px; min-width: 76px; }
   .carta { width: 118px; min-width: 118px; height: 178px; }
+  .overlay-recompensa .carta { width: 150px; min-width: 150px; height: 214px; }
+  .overlay-recompensa .carta img { height: 86px; }
   .carta img { height: 62px; }
   .carta-descripcion { font-size: 10px; }
   .modal-contenido { width: calc(100vw - 16px); max-height: calc(100vh - 24px); padding: 10px; }

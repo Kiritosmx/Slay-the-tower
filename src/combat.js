@@ -546,6 +546,18 @@ export class Combat {
     return Math.max(0, dmg);
   }
 
+  // Daño que el enemigo va a realizar con su intención actual, ya con
+  // el Débil aplicado. Drenar ignora el Bloqueo pero no el Débil... en
+  // realidad el drenado es directo: solo atacar/aplastar/romper se reducen.
+  valorIntencionEfectivo() {
+    const intent = this.boss.intent;
+    if (!intent || intent.valor == null) return null;
+    if (["atacar", "aplastar", "romperEscudo"].includes(intent.id) && this.boss.weak > 0) {
+      return Math.floor(intent.valor * 0.75);
+    }
+    return intent.valor;
+  }
+
   // ---------- Daño ----------
   jefeRecibirDaño(cantidad, tipo = "slash") {
     // Vulnerable: +50% (y otro +50% con Rastreo)

@@ -1296,3 +1296,87 @@ describe("Motor extendido: las 91 cartas", () => {
     contenedor.remove();
   });
 });
+
+describe("Intencion reactiva y arrastre visible", () => {
+  let contenedor, ui, combat;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    ui = new UI(contenedor);
+    ui.setCombat(combat);
+    ui._forzarLimite = 500;
+    ui._rectJefe = { left: 0, top: 0, right: 200, bottom: 200 };
+  });
+
+  it("valorIntencionEfectivo aplica Debil al ataque previsto", () => {
+    combat.boss.intent = { ...INTENCIONES_JEFE.find((i) => i.id === "atacar"), valor: 10 };
+    combat.boss.weak = 0;
+    expect(combat.valorIntencionEfectivo()).toBe(10);
+    combat.boss.weak = 1;
+    expect(combat.valorIntencionEfectivo()).toBe(7);
+    combat.boss.intent = { ...INTENCIONES_JEFE.find((i) => i.id === "drenar"), valor: 6 };
+    expect(combat.valorIntencionEfectivo()).toBe(6);
+  });
+
+  it("la intencion muestra el ataque reducido y los estados del jefe", () => {
+    combat.boss.intent = { ...INTENCIONES_JEFE.find((i) => i.id === "atacar"), valor: 10 };
+    combat.boss.weak = 2;
+    combat.boss.vulnerable = 1;
+    combat.boss.poison = 5;
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".intencion.debilitada")).toBeTruthy();
+    expect(contenedor.querySelector(".intencion-efectivo").textContent).toContain("7");
+    expect(contenedor.querySelector(".estado.veneno").textContent).toContain("5");
+    expect(contenedor.querySelector(".estado.vulnerable").textContent).toContain("1");
+  });
+
+  it("sin Debil no hay insignia de reduccion", () => {
+    combat.boss.weak = 0;
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".intencion.debilitada")).toBeNull();
+    expect(contenedor.querySelector(".intencion-efectivo")).toBeNull();
+  });
+
+  it("la carta arrastrada sube a capa fija por encima de todo", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    const el = contenedor.querySelector(".carta.arrastrando");
+    expect(el).toBeTruthy();
+    expect(el.style.position).toBe("fixed");
+    expect(el.style.zIndex).toBe("60");
+    ui.cancelarArrastre();
+  });
+
+  it("al apuntar la carta se difumina y queda la flecha", () => {
+    ui.iniciarArrastre(0, 100, 600);
+    ui.moverArrastre(100, 100);
+    const el = contenedor.querySelector(".carta.arrastrando");
+    expect(el.style.opacity).toBe("0.15");
+    expect(document.getElementById("flecha-objetivo")).toBeTruthy();
+    ui.moverArrastre(100, 700);
+    expect(contenedor.querySelector(".carta.arrastrando").style.opacity).toBe("1");
+    ui.cancelarArrastre();
+    expect(contenedor.querySelector(".carta.arrastrando")).toBeNull();
+    expect(document.getElementById("flecha-objetivo")).toBeNull();
+  });
+
+  it("la recompensa se muestra en grande", () => {
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".overlay-recompensa")).toBeTruthy();
+    const cartas = contenedor.querySelectorAll("#recompensa .carta-recompensa");
+    expect(cartas).toHaveLength(3);
+  });
+});

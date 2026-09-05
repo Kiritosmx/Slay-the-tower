@@ -120,14 +120,21 @@ export class UI {
           </div>
 
           <div class="lado-jefe">
-            <div class="intencion" title="${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}">
+            ${(() => {
+              const debilitado = c.boss.weak > 0 && c.boss.intent && c.boss.intent.valor != null &&
+                ["atacar", "aplastar", "romperEscudo"].includes(c.boss.intent.id);
+              const efectivo = debilitado ? c.valorIntencionEfectivo() : null;
+              return `
+            <div class="intencion${debilitado ? " debilitada" : ""}" title="${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}">
               <span class="intencion-icono">${c.boss.intent ? c.boss.intent.icon : "?"}</span>
               <span class="intencion-texto">${c.boss.intent ? c.boss.intent.detail(c.boss.intent) : ""}</span>
-            </div>
+              ${debilitado ? `<span class="intencion-efectivo" title="Débil: ataque reducido">→ ${efectivo} ⚔</span>` : ""}
+            </div>`;
+            })()}
             <div class="entidad jefe" data-entidad="jefe">
               <img class="sprite sprite-jefe${c.boss.escena ? " fondo-escena" : ""}" src="${imagenResiliente(this.cargador, c.boss.image)}" alt="${c.boss.name}" />
               <div class="entidad-info">
-                <div class="entidad-nombre">${c.boss.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}</div>
+                <div class="entidad-nombre">${c.boss.name} ${c.boss.weak > 0 ? `<span class="estado debuff" title="Débil: inflige 25% menos de daño">Débil ${c.boss.weak}</span>` : ""}${c.boss.vulnerable > 0 ? `<span class="estado vulnerable" title="Vulnerable: recibe 50% más de daño">Vuln. ${c.boss.vulnerable}</span>` : ""}${(c.boss.poison || 0) > 0 ? `<span class="estado veneno" title="Veneno: pierde vida al empezar su turno">☠ ${c.boss.poison}</span>` : ""}</div>
                 ${barraVida(c.boss, true)}
               </div>
             </div>
@@ -459,17 +466,24 @@ export class UI {
     if (!c.hand[indice]) return false;
     this.cancelarArrastre();
     this._limiteJuego = this.obtenerLimiteJuego();
-    this.arrastre = { indice, x0: x, y0: y, x, y, enZona: false, sobreJefe: false };
     const el = this.root.querySelector(`.carta[data-indice="${indice}"]`);
+    // La carta se saca a capa fija por encima de todo para que nunca
+    // quede oculta bajo la batalla; la flecha saldrá de su centro.
+    let baseX = x, baseY = y, w = 150, h = 214;
     if (el) {
-      el.classList.add("arrastrando");
       const r = el.getBoundingClientRect();
-      this.arrastre.origenX = r.left + r.width / 2;
-      this.arrastre.origenY = r.top + r.height / 2;
-    } else {
-      this.arrastre.origenX = x;
-      this.arrastre.origenY = y;
+      if (r.width > 0) {
+        baseX = r.left; baseY = r.top; w = r.width; h = r.height;
+      }
+      el.classList.add("arrastrando");
+      el.style.position = "fixed";
+      el.style.left = `${baseX}px`;
+      el.style.top = `${baseY}px`;
+      el.style.width = `${w}px`;
+      el.style.margin = "0";
+      el.style.zIndex = "60";
     }
+    this.arrastre = { indice, x0: x, y0: y, x, y, baseX, baseY, w, h, enZona: false, sobreJefe: false, origenX: baseX + w / 2, origenY: baseY + h / 2 };
     this._dibujarFlecha();
     return true;
   }
@@ -480,12 +494,16 @@ export class UI {
     this.arrastre.y = y;
     this.arrastre.enZona = y < this._limiteJuego;
     this.arrastre.sobreJefe = this.apuntandoAlJefe(x, y);
+    // La carta sigue al puntero; al apuntar se difumina y queda la flecha
+    this.arrastre.origenX = this.arrastre.baseX + (x - this.arrastre.x0) + this.arrastre.w / 2;
+    this.arrastre.origenY = this.arrastre.baseY + (y - this.arrastre.y0) + this.arrastre.h / 2;
     const el = this.root.querySelector(`.carta[data-indice="${this.arrastre.indice}"]`);
     if (el) {
       const dx = x - this.arrastre.x0;
       const dy = y - this.arrastre.y0;
-      el.style.transform = `translate(${dx}px, ${dy}px) scale(1.12) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
-      el.style.zIndex = "40";
+      const s = this.arrastre.enZona ? 0.9 : 1.12;
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(${s}) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
+      el.style.opacity = this.arrastre.enZona ? "0.15" : "1";
     }
     this._dibujarFlecha();
     this._pintarObjetivo();
@@ -519,6 +537,12 @@ export class UI {
       el.classList.remove("arrastrando");
       el.style.transform = "";
       el.style.zIndex = "";
+      el.style.position = "";
+      el.style.left = "";
+      el.style.top = "";
+      el.style.width = "";
+      el.style.margin = "";
+      el.style.opacity = "";
     });
     this.root.querySelectorAll(".lado-jefe.apuntado").forEach((el) => el.classList.remove("apuntado"));
   }

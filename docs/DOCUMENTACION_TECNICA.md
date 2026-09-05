@@ -229,6 +229,10 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 05:15 | `src/ui.js`, `src/main.js`, `src/sonidos.js`, `src/styles.css` | Modal de mejora obligatorio al empezar cada piso con vista previa base→Plus; modal de elección de Pesadilla; mejora pendiente bloquea jugar/cerrar turno; sonidos nuevos (veneno, robo, mejora, poder) | Mejora elegida con previa | TA | Alto |
 | 2026-09-05 05:20 | `tests/checkpoints.test.js` | +19 pruebas (78→97): catálogo, veneno, dagas, robo/energía, conservar/innata, Escurridiza, Destreza/Vulnerable, costes X, Ráfaga, escalados, Espinas, Intangible, Tiempo Bala, Brote, mejora, Pesadilla, Plan Perfecto, Caza bonus, UI de mejora | Cobertura total | TA | Alto |
 | 2026-09-05 05:25 | `tests/`, `dist/` | **Verificación de hito**: 97/97 pruebas OK + build OK (90.36 kB JS / gzip 24.75 kB) | Confirmar 91 cartas sin regresiones | TA | Hito ✅ |
+| 2026-09-05 06:00 | `src/ui.js`, `src/styles.css` | Recompensa en grande (190px, overlay 920px); arrastre en capa fija z-60 con flecha z-55 que sale del centro de la carta; al apuntar la carta se difumina (solo flecha) | Arrastre siempre visible | TA | Alto |
+| 2026-09-05 06:05 | `src/combat.js`, `src/ui.js`, `src/styles.css` | `valorIntencionEfectivo()` (Débil −25% en atacar/aplastar/romper); intención debilitada con `→ N` pulsante; insignias de Vulnerable y Veneno en el jefe | Ataque previsto reactivo | TA | Alto |
+| 2026-09-05 06:10 | `tests/checkpoints.test.js` | +6 pruebas (97→103): efectivo con/sin Débil, insignias, carta en capa fija, difuminado al apuntar, recompensa grande | Cobertura visual | TA | Medio |
+| 2026-09-05 06:15 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK (×3) + build OK (91.59 kB JS / gzip 25.17 kB) | Confirmar visuales sin regresiones | TA | Hito ✅ |
 
 ---
 
