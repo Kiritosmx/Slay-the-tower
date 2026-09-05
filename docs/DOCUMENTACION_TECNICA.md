@@ -255,6 +255,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 09:45 | `tests/`, `dist/` | **Verificación de hito**: 119/119 pruebas OK + build OK (94.09 kB JS / gzip 25.84 kB) | Confirmar insignias sin regresiones | TA | Hito ✅ |
 | 2026-09-05 10:00 | `src/ui.js`, `src/styles.css` | Pilas con arte oficial igual que la mano; tooltip con descripción en español (hover en ratón, pulsación larga de 450ms en táctil, se oculta al soltar/scroll/Escape/cerrar) | Pilas legibles + ayuda ES | TA | Alto |
 | 2026-09-05 10:05 | `tests/`, `dist/` | **Verificación de hito**: 122/122 pruebas OK + build OK (95.97 kB JS / gzip 26.37 kB) | Confirmar pilas+tooltip sin regresiones | TA | Hito ✅ |
+| 2026-09-05 10:20 | `src/ui.js`, `src/styles.css` | Baraja completa con arte oficial; tooltip marrón en mano, pilas y baraja (hover + pulsación larga); eliminados los `title` nativos duplicados | Descripción unificada | TA | Medio |
+| 2026-09-05 10:25 | `tests/`, `dist/` | **Verificación de hito**: 123/123 pruebas OK + build OK (96.12 kB JS / gzip 26.41 kB) | Confirmar unificación sin regresiones | TA | Hito ✅ |
 
 ---
 

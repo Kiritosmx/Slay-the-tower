@@ -422,12 +422,11 @@ describe("CP-08: Vista de baraja completa", () => {
     ui.abrirModalBaraja();
     const cartas = contenedor.querySelectorAll(".carta-vista");
     expect(cartas).toHaveLength(12);
-    // Cada carta muestra su información completa
+    // Cada carta muestra su arte oficial con tooltip por hover
     const primera = cartas[0];
-    expect(primera.querySelector(".carta-costo")).toBeTruthy();
-    expect(primera.querySelector(".carta-nombre").textContent).toBeTruthy();
-    expect(primera.querySelector(".carta-descripcion").textContent).toBeTruthy();
+    expect(primera.querySelector("img").getAttribute("src")).toContain("/cartas/");
     expect(primera.querySelector("img").getAttribute("alt")).toBeTruthy();
+    expect(primera.querySelector(".carta-descripcion")).toBeNull();
   });
 
   it("no cuenta cartas agotadas (exhaust) ni duplica", () => {
@@ -467,16 +466,15 @@ describe("CP-08: Vista de baraja completa", () => {
     expect(habilidad.cartas.every((c) => c.cost === 1)).toBe(true);
   });
 
-  it("muestra el tipo y coste en cada carta (⚔ 🛡)", () => {
+  it("el hover en la baraja muestra la descripcion en espanol", () => {
     ui.abrirModalBaraja();
-    const tipos = [...contenedor.querySelectorAll(".carta-vista .carta-tipo")];
-    expect(tipos).toHaveLength(12);
-    expect(tipos.some((el) => el.textContent.includes("Ataque"))).toBe(true);
-    expect(tipos.some((el) => el.textContent.includes("Habilidad"))).toBe(true);
-    const costes = [...contenedor.querySelectorAll(".carta-vista .carta-costo")];
-    expect(costes).toHaveLength(12);
-    expect(costes.some((el) => el.textContent.includes("0"))).toBe(true); // Neutralizar
-    expect(costes.some((el) => el.textContent.includes("1"))).toBe(true); // Golpe/Defensa
+    const primera = contenedor.querySelector("#modal-baraja .baraja-vista");
+    expect(primera).toBeTruthy();
+    primera.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    const tip = document.getElementById("tooltip-carta");
+    expect(tip).toBeTruthy();
+    expect(tip.textContent.length).toBeGreaterThan(10);
+    ui.cerrarModalBaraja();
   });
 
   it("cierra con el botón X y devuelve el foco al botón de la baraja", () => {
@@ -1697,5 +1695,30 @@ describe("Pilas iguales que la mano + descripcion", () => {
     expect(document.getElementById("tooltip-carta")).toBeNull();
     ui._mostrarTooltip("inexistente", 10, 10);
     expect(document.getElementById("tooltip-carta")).toBeNull();
+  });
+});
+
+describe("Tooltip tambien en mano", () => {
+  it("el hover en la mano muestra el tooltip sin title nativo", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    const ui = new UI(contenedor);
+    ui.setCombat(combat);
+    const el = contenedor.querySelector(".mano .carta[data-indice]");
+    expect(el.querySelector("img").getAttribute("title")).toBeNull();
+    el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    const tip = document.getElementById("tooltip-carta");
+    expect(tip).toBeTruthy();
+    expect(tip.textContent).toContain(CARDS[combat.hand[0]].description);
+    contenedor.remove();
+    ui._ocultarTooltip();
   });
 });

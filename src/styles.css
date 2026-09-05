@@ -1094,6 +1094,31 @@ body.arrastrando-carta, body.arrastrando-carta * { cursor: none !important; }
 
 .modal-pila-cartas .carta:hover { border-color: var(--dorado); }
 
+/* ---------- Baraja completa: arte oficial igual que mano y pilas ---------- */
+#modal-baraja .carta-vista {
+  width: 132px;
+  min-width: 132px;
+  height: auto;
+  background: none;
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+#modal-baraja .carta-vista img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 734 / 916;
+  margin: 0;
+  border-radius: 11px;
+  border: none;
+  outline: none;
+  background: #10151b;
+}
+
+#modal-baraja .carta-vista:hover { border-color: var(--dorado); }
+
 /* ---------- Tooltip de carta (descripción en español) ---------- */
 #tooltip-carta {
   position: fixed;

@@ -57,22 +57,24 @@ export class UI {
     this.root.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.arrastre) this.cancelarArrastre();
     });
-    // Descripción en español: hover con ratón y pulsación larga en táctil
+    // Descripción en español: hover con ratón y pulsación larga en táctil.
+    // Vale para pilas, mano y baraja completa (nunca durante un arrastre).
     this._temporizadorTooltip = null;
     this._origenTooltip = null;
     this.root.addEventListener("mouseover", (e) => {
-      const el = e.target.closest(".pila-vista[data-id]");
-      if (el) {
-        const r = el.getBoundingClientRect();
-        this._mostrarTooltip(el.dataset.id, r.left + r.width / 2, r.top);
-      }
+      if (this.arrastre) return;
+      const id = this._idCartaParaTooltip(e.target.closest(".pila-vista[data-id], .baraja-vista[data-id], .mano .carta[data-indice]"));
+      if (!id) return;
+      const el = e.target.closest(".pila-vista, .baraja-vista, .mano .carta");
+      const r = el.getBoundingClientRect();
+      this._mostrarTooltip(id, r.left + r.width / 2, r.top);
     });
     this.root.addEventListener("mouseout", (e) => {
-      if (e.target.closest(".pila-vista[data-id]")) this._ocultarTooltip();
+      if (e.target.closest(".pila-vista[data-id], .baraja-vista[data-id], .mano .carta[data-indice]")) this._ocultarTooltip();
     });
     this.root.addEventListener("pointerdown", (e) => {
-      const el = e.target.closest(".pila-vista[data-id]");
-      if (!el) return;
+      const el = e.target.closest(".pila-vista[data-id], .baraja-vista[data-id], .mano .carta[data-indice]");
+      if (!el || this.arrastre) return;
       const x = e.clientX, y = e.clientY;
       this._origenTooltip = { x, y };
       clearTimeout(this._temporizadorTooltip);
@@ -97,6 +99,15 @@ export class UI {
   }
 
   // ---------- Tooltip de carta (descripción en español) ----------
+  // Resuelve el id de carta para el tooltip en pilas, baraja y mano.
+  _idCartaParaTooltip(el) {
+    if (!el) return null;
+    if (el.dataset.id) return el.dataset.id;
+    if (el.dataset.indice != null && this.combat) {
+      return this.combat.hand[Number(el.dataset.indice)] ?? null;
+    }
+    return null;
+  }
   _mostrarTooltip(cardId, x, y) {
     if (typeof document === "undefined") return;
     const card = CARDS[cardId];
@@ -233,7 +244,7 @@ export class UI {
                   const jugable = c.puedeJugar(cardId);
                   return `
                   <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}" data-tipo="${card.type}">
-                    <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" />
+                    <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" />
                   </div>`;
                 })
                 .join("")}
@@ -723,7 +734,7 @@ export class UI {
               const card = CARDS[cardId];
               return `
               <button class="carta-recompensa" data-id="${cardId}" aria-label="Elegir ${card.name}: ${card.description}">
-                <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" loading="lazy" decoding="async" />
+                <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
               </button>`;
             }).join("")}
           </div>
@@ -758,12 +769,8 @@ export class UI {
             ${grupo.cartas
               .map(
                 (card, ci) => `
-            <div class="carta carta-vista" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
-              <div class="carta-costo">${card.cost}</div>
-              <div class="carta-nombre">${card.name}</div>
+            <div class="carta carta-vista baraja-vista" data-id="${card.id}" data-tipo="${card.type}" style="--retardo: ${Math.min(ci * 40, 30 * 40)}ms">
               <img draggable="false" src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" loading="lazy" decoding="async" />
-              <div class="carta-tipo">${card.type}</div>
-              <div class="carta-descripcion">${card.description}</div>
             </div>`
               )
               .join("")}
