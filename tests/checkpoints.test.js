@@ -1523,3 +1523,40 @@ describe("Punta de flecha y mano compacta", () => {
     expect(contenedor.querySelector("#btn-fin-turno")).toBeTruthy();
   });
 });
+
+describe("Mejora solo tras victoria", () => {
+  it("al empezar a jugar no hay modal de mejora", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    expect(combat.mejoraPendiente).toBe(false);
+    const ui = new UI(contenedor);
+    ui.setCombat(combat);
+    expect(contenedor.querySelector("#modal-mejora")).toBeNull();
+    contenedor.remove();
+  });
+
+  it("al avanzar de piso si queda pendiente la mejora", () => {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+    });
+    combat.iniciarCombate();
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    combat.elegirRecompensa(combat.recompensa[0]);
+    expect(combat.piso).toBe(1);
+    expect(combat.mejoraPendiente).toBe(true);
+  });
+});

@@ -38,8 +38,8 @@ const combat = new Combat({
 });
 
 // Inicia el primer turno una vez que combat está inicializado.
-// La mejora de piso 1 queda pendiente: la UI abre el modal con vista previa.
-combat.mejoraPendiente = true;
+// La mejora de cartas solo se ofrece al derrotar enemigos (avanzarPiso),
+// nunca al empezar a jugar.
 combat.iniciarCombate();
 
 // ---------- Precarga de recursos con gestión de carga ----------
