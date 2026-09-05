@@ -420,6 +420,31 @@ body::before {
   cursor: not-allowed;
 }
 
+/* ---------- Mano: arte oficial solo-imagen ---------- */
+.mano .carta {
+  width: 150px;
+  min-width: 150px;
+  height: auto;
+  background: none;
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.mano .carta img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 734 / 916;
+  margin: 0;
+  border-radius: 11px;
+  border: none;
+  outline: none;
+  background: #10151b;
+}
+
+.mano .carta.jugable:hover { border-color: var(--dorado); }
+
 /* ---------- Arrastre estilo Spire ---------- */
 .mano .carta { touch-action: none; }
 
@@ -428,6 +453,14 @@ body::before {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 22px rgba(232, 200, 74, 0.45);
   border-color: var(--dorado);
   cursor: grabbing;
+  transition: opacity 0.18s ease;
+}
+
+/* Al salir del marco la carta se desvanece y se convierte en la flecha */
+.carta.arrastrando.fuera-marco { opacity: 0; }
+
+#flecha-objetivo.intensa svg {
+  filter: drop-shadow(0 0 10px rgba(232, 200, 74, 0.9));
 }
 
 #flecha-objetivo {
@@ -894,6 +927,7 @@ body::before {
   .orbe-valor { font-size: 17px; }
   .pila { width: 76px; min-width: 76px; }
   .carta { width: 118px; min-width: 118px; height: 178px; }
+  .mano .carta { width: 118px; min-width: 118px; }
   .carta-recompensa img { width: 160px; }
   .carta img { height: 62px; }
   .carta-descripcion { font-size: 10px; }

@@ -235,6 +235,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 06:15 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK (×3) + build OK (91.59 kB JS / gzip 25.17 kB) | Confirmar visuales sin regresiones | TA | Hito ✅ |
 | 2026-09-05 06:30 | `src/ui.js`, `src/styles.css` | Recompensa solo-imagen: se elimina el marco propio (duplicaba el arte oficial) y se muestra el PNG tal cual a 230px con tooltip del efecto en español | Carta completa y ampliada | TA | Medio |
 | 2026-09-05 06:35 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.35 kB JS / gzip 25.17 kB) | Confirmar recompensa sin regresiones | TA | Hito ✅ |
+| 2026-09-05 07:00 | `src/ui.js`, `src/styles.css` | Mano con arte oficial solo-imagen (150px, sin marco duplicado); arrastre como antes (carta visible a 1.12) con fundido a flecha al salir del marco (transición + flecha intensa con brillo) | Mano fiel y arrastre fluido | TA | Alto |
+| 2026-09-05 07:05 | `tests/`, `dist/` | **Verificación de hito**: 103/103 pruebas OK + build OK (91.59 kB JS / gzip 25.27 kB) | Confirmar mano+arrastre sin regresiones | TA | Hito ✅ |
 
 ---
 

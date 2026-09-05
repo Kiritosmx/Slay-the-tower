@@ -1357,14 +1357,17 @@ describe("Intencion reactiva y arrastre visible", () => {
     ui.cancelarArrastre();
   });
 
-  it("al apuntar la carta se difumina y queda la flecha", () => {
+  it("al salir del marco la carta se desvanece y la flecha se intensifica", () => {
+    ui._rectMano = { left: 0, top: 500, right: 800, bottom: 750 };
     ui.iniciarArrastre(0, 100, 600);
-    ui.moverArrastre(100, 100);
+    ui.moverArrastre(400, 600);
+    expect(contenedor.querySelector(".carta.arrastrando.fuera-marco")).toBeNull();
+    ui.moverArrastre(400, 100);
     const el = contenedor.querySelector(".carta.arrastrando");
-    expect(el.style.opacity).toBe("0.15");
-    expect(document.getElementById("flecha-objetivo")).toBeTruthy();
-    ui.moverArrastre(100, 700);
-    expect(contenedor.querySelector(".carta.arrastrando").style.opacity).toBe("1");
+    expect(el.classList.contains("fuera-marco")).toBe(true);
+    expect(document.getElementById("flecha-objetivo").classList.contains("intensa")).toBe(true);
+    ui.moverArrastre(400, 600);
+    expect(contenedor.querySelector(".carta.arrastrando.fuera-marco")).toBeNull();
     ui.cancelarArrastre();
     expect(contenedor.querySelector(".carta.arrastrando")).toBeNull();
     expect(document.getElementById("flecha-objetivo")).toBeNull();

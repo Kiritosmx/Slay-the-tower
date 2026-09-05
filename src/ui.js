@@ -161,11 +161,7 @@ export class UI {
                   const jugable = c.puedeJugar(cardId);
                   return `
                   <div class="carta ${jugable ? "jugable" : "no-jugable"}" data-indice="${i}" data-tipo="${card.type}">
-                    <div class="carta-costo">${card.cost}</div>
-                    <div class="carta-nombre">${card.name}</div>
-                    <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" />
-                    <div class="carta-tipo">${card.type}</div>
-                    <div class="carta-descripcion">${card.description}</div>
+                    <img src="${imagenResiliente(this.cargador, card.image)}" alt="${card.name}" title="${card.name}: ${card.description}" />
                   </div>`;
                 })
                 .join("")}
@@ -494,19 +490,37 @@ export class UI {
     this.arrastre.y = y;
     this.arrastre.enZona = y < this._limiteJuego;
     this.arrastre.sobreJefe = this.apuntandoAlJefe(x, y);
-    // La carta sigue al puntero; al apuntar se difumina y queda la flecha
+    // La carta sigue al puntero como antes; al salir del marco de la mano
+    // se desvanece y se convierte en la flecha (que se intensifica).
+    const fuera = this.fueraDelMarco(x, y);
+    this.arrastre.fueraMarco = fuera;
     this.arrastre.origenX = this.arrastre.baseX + (x - this.arrastre.x0) + this.arrastre.w / 2;
     this.arrastre.origenY = this.arrastre.baseY + (y - this.arrastre.y0) + this.arrastre.h / 2;
     const el = this.root.querySelector(`.carta[data-indice="${this.arrastre.indice}"]`);
     if (el) {
       const dx = x - this.arrastre.x0;
       const dy = y - this.arrastre.y0;
-      const s = this.arrastre.enZona ? 0.9 : 1.12;
-      el.style.transform = `translate(${dx}px, ${dy}px) scale(${s}) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
-      el.style.opacity = this.arrastre.enZona ? "0.15" : "1";
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(1.12) rotate(${Math.max(-8, Math.min(8, dx * 0.03))}deg)`;
+      el.classList.toggle("fuera-marco", fuera);
     }
     this._dibujarFlecha();
     this._pintarObjetivo();
+  }
+
+  // ¿El puntero salió del marco de la mano?
+  marcoMano() {
+    if (this._rectMano) return this._rectMano;
+    const mano = this.root.querySelector(".mano");
+    if (!mano) return null;
+    const r = mano.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return null;
+    return r;
+  }
+
+  fueraDelMarco(x, y) {
+    const r = this.marcoMano();
+    if (!r) return this.arrastre ? this.arrastre.enZona : false;
+    return x < r.left || x > r.right || y < r.top || y > r.bottom;
   }
 
   soltarArrastre(x = this.arrastre?.x, y = this.arrastre?.y) {
@@ -535,6 +549,7 @@ export class UI {
     document.getElementById("vista-previa")?.remove();
     this.root.querySelectorAll(".carta.arrastrando").forEach((el) => {
       el.classList.remove("arrastrando");
+      el.classList.remove("fuera-marco");
       el.style.transform = "";
       el.style.zIndex = "";
       el.style.position = "";
@@ -598,18 +613,20 @@ export class UI {
       document.body.appendChild(this._capaFlecha);
     }
     const capa = this._capaFlecha;
-    const { origenX: x1, origenY: y1, x: x2, y: y2, enZona } = this.arrastre;
+    const { origenX: x1, origenY: y1, x: x2, y: y2, enZona, fueraMarco } = this.arrastre;
     const mx = (x1 + x2) / 2;
     const color = enZona ? "#e8c84a" : "#8a94a0";
+    const grueso = fueraMarco ? 9 : 5;
     const vw = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1280;
     const vh = typeof window !== "undefined" && window.innerHeight ? window.innerHeight : 800;
+    if (this._capaFlecha) this._capaFlecha.classList.toggle("intensa", Boolean(fueraMarco));
     capa.innerHTML = `
       <svg viewBox="0 0 ${vw} ${vh}" width="${vw}" height="${vh}">
         <defs><marker id="punta-flecha" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
           <path d="M0,0 L7,3 L0,6 Z" fill="${color}"></path>
         </marker></defs>
         <path d="M${x1},${y1} Q${mx},${Math.min(y1, y2) - 40} ${x2},${y2}"
-          fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
+          fill="none" stroke="${color}" stroke-width="${grueso}" stroke-linecap="round" marker-end="url(#punta-flecha)"/>
         <circle cx="${x1}" cy="${y1}" r="8" fill="${color}"/>
       </svg>`;
   }
