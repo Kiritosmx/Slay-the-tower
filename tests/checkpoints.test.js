@@ -5,7 +5,7 @@
 // ============================================================
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { CARDS, BOSS, PISOS, CARTAS_RECOMPENSA, IDS_RECOMPENSA, elegirRecompensas, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
+import { CARDS, BOSS, PISOS, IDS_RECOMPENSA, elegirRecompensas, esMejorable, crearBarajaInicial, elegirIntencionJefe, INTENCIONES_JEFE } from "../src/gamedata.js";
 import { Combat } from "../src/combat.js";
 import { UI } from "../src/ui.js";
 import {
@@ -63,12 +63,12 @@ describe("CP-01: Datos del juego íntegros", () => {
 
 // ---------- CP-02: Motor de combate ----------
 describe("CP-02: Motor de combate operativo", () => {
-  it("inicia turno 1 con energía completa y mano de 5", () => {
+  it("inicia turno 1 con energía completa y mano de 7 (rasgo +2)", () => {
     const combat = crearCombate();
     expect(combat.turn).toBe(1);
     expect(combat.player.energy).toBe(combat.player.maxEnergy);
-    expect(combat.hand).toHaveLength(5);
-    expect(combat.deck.length + combat.discard.length).toBe(7);
+    expect(combat.hand).toHaveLength(7);
+    expect(combat.deck.length + combat.discard.length).toBe(5);
   });
 
   it("recicla el descarte al agotar la pila de robo", () => {
@@ -172,7 +172,7 @@ describe("CP-05: UI renderiza el combate", () => {
     const html = contenedor.innerHTML;
     expect(html.length).toBeGreaterThan(500);
     expect(contenedor.querySelector("#btn-fin-turno")).toBeTruthy();
-    expect(contenedor.querySelectorAll(".carta")).toHaveLength(5);
+    expect(contenedor.querySelectorAll(".carta")).toHaveLength(7);
     expect(html).toContain("intencion-icono");
     expect(ms).toBeLessThan(100);
   });
@@ -791,7 +791,7 @@ describe("Arrastre estilo Spire: carta + flecha", () => {
     expect(ui.iniciarArrastre(0, 100, 600)).toBe(true);
     expect(document.getElementById("flecha-objetivo")).toBeTruthy();
     expect(ui.soltarArrastre(100, 100)).toBe("jugada");
-    expect(combat.hand).toHaveLength(4);
+    expect(combat.hand).toHaveLength(6);
     expect(combat.player.energy).toBe(combat.player.maxEnergy - 1);
     expect(document.getElementById("flecha-objetivo")).toBeNull();
   });
@@ -799,7 +799,7 @@ describe("Arrastre estilo Spire: carta + flecha", () => {
   it("soltar abajo cancela sin cambios", () => {
     ui.iniciarArrastre(0, 100, 600);
     expect(ui.soltarArrastre(100, 700)).toBe("cancelada");
-    expect(combat.hand).toHaveLength(5);
+    expect(combat.hand).toHaveLength(7);
     expect(combat.player.energy).toBe(combat.player.maxEnergy);
     expect(document.getElementById("flecha-objetivo")).toBeNull();
   });
@@ -901,7 +901,7 @@ describe("Pisos de la torre", () => {
     expect(combat.boss.name).toBe("Caballero Dorado");
     expect(combat.boss.hp).toBe(80);
     expect(combat.player.hp).toBe(40 + Math.floor(72 * 0.25));
-    expect(combat.hand).toHaveLength(5);
+    expect(combat.hand).toHaveLength(7);
     expect(combat.deck.length + combat.hand.length + combat.discard.length).toBe(totalAntes + 1);
   });
 
@@ -1507,7 +1507,7 @@ describe("Punta de flecha y mano compacta", () => {
   });
 
   it("la mano informa su tamano para compactarse", () => {
-    expect(contenedor.querySelector(".cartas").getAttribute("data-n")).toBe("5");
+    expect(contenedor.querySelector(".cartas").getAttribute("data-n")).toBe("7");
     combat.hand = Array(8).fill("strike");
     ui.setCombat(combat);
     expect(contenedor.querySelector(".cartas").getAttribute("data-n")).toBe("8");
@@ -1720,5 +1720,80 @@ describe("Tooltip tambien en mano", () => {
     expect(tip.textContent).toContain(CARDS[combat.hand[0]].description);
     contenedor.remove();
     ui._ocultarTooltip();
+  });
+});
+
+describe("Rasgo Silenciosa y oro", () => {
+  function nuevoCombate() {
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: () => {},
+    });
+    combat.iniciarCombate();
+    return combat;
+  }
+
+  it("empieza cada combate con 2 cartas adicionales (7 en mano)", () => {
+    const combat = nuevoCombate();
+    expect(combat.hand).toHaveLength(7);
+    expect(combat.deck.length + combat.discard.length).toBe(5);
+  });
+
+  it("cada piso abre con 7 cartas", () => {
+    const combat = nuevoCombate();
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    combat.elegirRecompensa(combat.recompensa[0]);
+    expect(combat.piso).toBe(1);
+    expect(combat.hand).toHaveLength(7);
+  });
+
+  it("empieza con 75 de oro y cada victoria da 35", () => {
+    const combat = nuevoCombate();
+    expect(combat.player.oro).toBe(75);
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    expect(combat.player.oro).toBe(110);
+    expect(combat.ultimaAccion).toContain("35");
+    combat.elegirRecompensa(combat.recompensa[0]);
+    combat.elegirMejora(combat.deck.find((id) => esMejorable(id)) ?? combat.hand.find((id) => esMejorable(id)));
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    expect(combat.player.oro).toBe(145);
+  });
+
+  it("la UI muestra el oro y el sonido suena al vencer", () => {
+    document.body.innerHTML = "";
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const sonados = [];
+    const combat = new Combat({
+      onStateChange: () => {},
+      onGameOver: () => {},
+      onVictory: () => {},
+      onLog: () => {},
+      onSonido: (n) => sonados.push(n),
+    });
+    combat.iniciarCombate();
+    const ui = new UI(contenedor);
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".ficha-oro").textContent).toContain("75");
+    combat.boss.hp = 1;
+    combat.hand[0] = "strike";
+    combat.player.energy = combat.player.maxEnergy;
+    combat.jugarCarta(combat.hand.indexOf("strike"));
+    expect(sonados).toContain("oro");
+    ui.setCombat(combat);
+    expect(contenedor.querySelector(".ficha-oro").textContent).toContain("110");
+    contenedor.remove();
   });
 });

@@ -197,8 +197,8 @@ export const CHECKPOINTS = [
       comprobaciones.push(
         comprobacion("turno 1 iniciado", combat.turn === 1, `turno ${combat.turn}`),
         comprobacion("energía completa al iniciar turno", combat.player.energy === combat.player.maxEnergy, `${combat.player.energy}/${combat.player.maxEnergy}`),
-        comprobacion("mano inicial de 5 cartas", combat.hand.length === 5, `${combat.hand.length} cartas`),
-        comprobacion("pila de robo + descarte = 12", combat.deck.length + combat.discard.length === 7, `${combat.deck.length} + ${combat.discard.length}`)
+        comprobacion("mano inicial de 7 cartas (rasgo +2)", combat.hand.length === 7, `${combat.hand.length} cartas`),
+        comprobacion("pila de robo + descarte = 12", combat.deck.length + combat.discard.length === 5, `${combat.deck.length} + ${combat.discard.length}`)
       );
 
       // Robo con reciclaje de descartes
@@ -334,7 +334,7 @@ export const CHECKPOINTS = [
         comprobacion("muestra nombre del jefe", html.includes(combat.boss.name), combat.boss.name),
         comprobacion("muestra energía del jugador", html.includes("Energía"), ""),
         comprobacion("botón de fin de turno presente", Boolean(contenedor.querySelector(".btn-fin-turno")), ""),
-        comprobacion("cartas de la mano renderizadas", contenedor.querySelectorAll(".carta").length === 5, `${contenedor.querySelectorAll(".carta").length} cartas`),
+        comprobacion("cartas de la mano renderizadas", contenedor.querySelectorAll(".carta").length === 7, `${contenedor.querySelectorAll(".carta").length} cartas`),
         comprobacion(
           `render UI <= ${sistema.limites.msRenderUi} ms`,
           ms <= sistema.limites.msRenderUi,

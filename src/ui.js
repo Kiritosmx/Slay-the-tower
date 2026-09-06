@@ -171,6 +171,7 @@ export class UI {
           <div class="jugador-ficha">
             <span class="ficha-nombre">${c.player.name}</span>
             <span class="ficha-hp">❤ ${c.player.hp}/${c.player.maxHp}</span>
+            <span class="ficha-oro" title="Oro para la futura tienda">🪙 ${c.player.oro}</span>
           </div>
           <div class="piso-turno">
             <span class="piso">Piso ${c.piso + 1}/${PISOS.length}</span>

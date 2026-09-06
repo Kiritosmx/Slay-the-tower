@@ -77,6 +77,7 @@ body::before {
 .jugador-ficha { display: flex; align-items: baseline; gap: 10px; }
 .ficha-nombre { font-weight: 800; font-size: 16px; }
 .ficha-hp { color: #ff8a8a; font-weight: 700; font-size: 14px; }
+.ficha-oro { color: #ffd54a; font-weight: 700; font-size: 14px; }
 .piso-turno { display: flex; gap: 12px; color: var(--dorado); font-weight: 700; font-size: 14px; }
 .botones-accion { display: flex; align-items: center; gap: 10px; }
 .accion { font-size: 13px; color: #9aa4b2; min-height: 18px; }

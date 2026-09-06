@@ -257,6 +257,8 @@ Las mismas políticas se aplican a las herramientas de desarrollo:
 | 2026-09-05 10:05 | `tests/`, `dist/` | **Verificación de hito**: 122/122 pruebas OK + build OK (95.97 kB JS / gzip 26.37 kB) | Confirmar pilas+tooltip sin regresiones | TA | Hito ✅ |
 | 2026-09-05 10:20 | `src/ui.js`, `src/styles.css` | Baraja completa con arte oficial; tooltip marrón en mano, pilas y baraja (hover + pulsación larga); eliminados los `title` nativos duplicados | Descripción unificada | TA | Medio |
 | 2026-09-05 10:25 | `tests/`, `dist/` | **Verificación de hito**: 123/123 pruebas OK + build OK (96.12 kB JS / gzip 26.41 kB) | Confirmar unificación sin regresiones | TA | Hito ✅ |
+| 2026-09-05 10:40 | `src/combat.js`, `src/ui.js`, `src/sonidos.js` | Rasgo Silenciosa (+2 cartas al abrir cada combate: mano de 7), oro inicial 75 y +35 por enemigo (para la futura tienda, con sonido propio y ficha 🪙) | Rasgo + economía | TA | Alto |
+| 2026-09-05 10:45 | `tests/`, `dist/` | **Verificación de hito**: 127/127 pruebas OK + build OK (96.41 kB JS / gzip 26.52 kB) | Confirmar rasgo+oro sin regresiones | TA | Hito ✅ |
 
 ---
 

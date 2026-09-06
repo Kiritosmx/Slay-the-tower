@@ -16,6 +16,7 @@ export class Combat {
       name: PLAYER.name,
       hp: PLAYER.maxHp,
       maxHp: PLAYER.maxHp,
+      oro: 75, // Para la futura tienda
       block: 0,
       energy: 3,
       maxEnergy: 3,
@@ -129,7 +130,9 @@ export class Combat {
     }
     // Depredador: robo programado
     if (this.nextDraw > 0) { const n = this.nextDraw; this.nextDraw = 0; this.robar(n); }
-    // Innatas del primer turno garantizadas en la mano inicial
+    // Innatas del primer turno garantizadas en la mano inicial.
+    // Rasgo de la Silenciosa: cada combate abre con 2 cartas adicionales.
+    const abreConExtra = this.esPrimerTurno;
     if (this.esPrimerTurno) {
       this.esPrimerTurno = false;
       const innatas = this.deck.filter((id) => CARDS[id]?.fx?.innate);
@@ -147,7 +150,7 @@ export class Combat {
     this.boss.lastIntentId = base.id;
     // El jefe pierde su bloqueo al inicio de su turno
     this.boss.block = 0;
-    this.robar(5);
+    this.robar(abreConExtra ? 7 : 5);
     this.ultimaAccion = `Turno ${this.turn} — Tu turno`;
     this.notify();
   }
@@ -736,10 +739,12 @@ export class Combat {
 
   ganar() {
     this.over = true;
-    this.ultimaAccion = `¡${this.boss.name} derrotado! Elige tu recompensa`;
+    this.player.oro += 35;
+    this.ultimaAccion = `¡${this.boss.name} derrotado! +35 de Oro. Elige tu recompensa`;
     this.recompensa = elegirRecompensas(3);
     this.notify();
     this.onSonido("victoria");
+    this.onSonido("oro");
     this.onVictory();
   }
 
@@ -789,6 +794,7 @@ export class Combat {
     this.recompensaBonus = false;
     this.bonusUsado = false;
     this.mejoraPendiente = true;
+    this.esPrimerTurno = true;
     const cura = Math.floor(this.player.maxHp * 0.25);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + cura);
     this.player.block = 0;
